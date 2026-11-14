@@ -1,0 +1,1087 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { Job, JobSector, GenderType, JobStatus } from '@/types/job';
+import { formatTelegramMessage, formatWhatsAppMessage } from '@/lib/broadcast';
+import { 
+  PlusCircle, 
+  Trash2, 
+  Edit, 
+  Eye, 
+  CheckCircle, 
+  AlertCircle, 
+  Briefcase, 
+  Building2, 
+  Calendar, 
+  Lock, 
+  Unlock,
+  Sparkles,
+  TrendingUp,
+  Search,
+  ExternalLink,
+  RotateCcw,
+  Send,
+  MessageCircle,
+  Copy,
+  Check,
+  Settings,
+  Radio,
+  Share2
+} from 'lucide-react';
+
+export default function AdminPage() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [pin, setPin] = useState('');
+  const [pinError, setPinError] = useState(false);
+
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+
+  // Form Modal State
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingJob, setEditingJob] = useState<Job | null>(null);
+
+  // Broadcast & Publishing State
+  const [broadcastModalOpen, setBroadcastModalOpen] = useState(false);
+  const [broadcastJob, setBroadcastJob] = useState<Job | null>(null);
+  const [broadcastTab, setBroadcastTab] = useState<'telegram' | 'whatsapp'>('telegram');
+  const [publishingTelegram, setPublishingTelegram] = useState(false);
+  const [publishResult, setPublishResult] = useState<{ type: 'idle' | 'success' | 'error'; message: string }>({
+    type: 'idle',
+    message: '',
+  });
+  const [copiedType, setCopiedType] = useState<'telegram' | 'whatsapp' | null>(null);
+
+  // Channel Settings State
+  const [settingsModalOpen, setSettingsModalOpen] = useState(false);
+  const [telegramBotToken, setTelegramBotToken] = useState('');
+  const [telegramChannelId, setTelegramChannelId] = useState('');
+  const [autoPublishTelegram, setAutoPublishTelegram] = useState(false);
+
+  // Form fields
+  const [formData, setFormData] = useState({
+    title: '',
+    company: '',
+    companyLogo: '',
+    sector: 'corporate' as JobSector,
+    sectorLabel: 'وظائف شركات كبرى',
+    gender: 'both' as GenderType,
+    genderLabel: 'للجنسين (رجال ونساء)',
+    qualifications: 'بكالوريوس',
+    location: 'الرياض',
+    city: 'الرياض',
+    status: 'active' as JobStatus,
+    startDate: '',
+    endDate: '',
+    experience: 'لا يشترط خبرة سابقة',
+    salary: 'رواتب وبدلات مجزية',
+    summary: '',
+    description: '',
+    requirements: '',
+    benefits: '',
+    applicationUrl: 'https://',
+    sourceUrl: 'https://',
+    featured: false,
+    urgent: false,
+  });
+
+  const loadJobs = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch('/api/jobs');
+      const data = await res.json();
+      if (data.success && Array.isArray(data.data)) {
+        setJobs(data.data);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    // Check if previously logged in
+    const auth = localStorage.getItem('admin_auth');
+    if (auth === 'true') {
+      setIsAuthenticated(true);
+    }
+    // Load Telegram Settings from local storage
+    const savedToken = localStorage.getItem('tg_bot_token') || '';
+    const savedChannel = localStorage.getItem('tg_channel_id') || '';
+    setTelegramBotToken(savedToken);
+    setTelegramChannelId(savedChannel);
+
+    loadJobs();
+  }, []);
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (pin === '2026' || pin === '1234' || pin === 'admin') {
+      setIsAuthenticated(true);
+      localStorage.setItem('admin_auth', 'true');
+      setPinError(false);
+    } else {
+      setPinError(true);
+    }
+  };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    localStorage.removeItem('admin_auth');
+  };
+
+  const saveSettings = (e: React.FormEvent) => {
+    e.preventDefault();
+    localStorage.setItem('tg_bot_token', telegramBotToken.trim());
+    localStorage.setItem('tg_channel_id', telegramChannelId.trim());
+    setSettingsModalOpen(false);
+    alert('تم حفظ إعدادات التيليجرام بنجاح! 💾');
+  };
+
+  const openAddModal = () => {
+    setEditingJob(null);
+    setFormData({
+      title: '',
+      company: '',
+      companyLogo: 'https://images.unsplash.com/photo-1541888946425-d0fbb18086f6?w=128&auto=format&fit=crop&q=80',
+      sector: 'corporate',
+      sectorLabel: 'وظائف شركات كبرى',
+      gender: 'both',
+      genderLabel: 'للجنسين (رجال ونساء)',
+      qualifications: 'ثانوية عامة، دبلوم، بكالوريوس',
+      location: 'كافة المناطق',
+      city: 'الرياض',
+      status: 'active',
+      startDate: new Date().toISOString().split('T')[0],
+      endDate: new Date(Date.now() + 25 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      experience: 'حديثي التخرج وخبرات سابقة',
+      salary: 'رواتب وبدلات مجزية',
+      summary: '',
+      description: '<p>تعلن الجهة عن فتح باب التوظيف لشغل عدد من الوظائف الشاغرة...</p>',
+      requirements: 'أن يكون المتقدم سعودي الجنسية\nحسن السيرة والسلوك\nالحصول على المؤهل المطلوب',
+      benefits: 'تأمين طبي شامل\nبدل سكن وبدل مواصلات\nحوافز سنوية',
+      applicationUrl: 'https://',
+      sourceUrl: 'https://',
+      featured: false,
+      urgent: false,
+    });
+    setModalOpen(true);
+  };
+
+  const openEditModal = (job: Job) => {
+    setEditingJob(job);
+    setFormData({
+      title: job.title,
+      company: job.company,
+      companyLogo: job.companyLogo || '',
+      sector: job.sector,
+      sectorLabel: job.sectorLabel,
+      gender: job.gender,
+      genderLabel: job.genderLabel,
+      qualifications: job.qualifications.join('، '),
+      location: job.location,
+      city: job.city,
+      status: job.status,
+      startDate: job.startDate,
+      endDate: job.endDate,
+      experience: job.experience,
+      salary: job.salary || '',
+      summary: job.summary,
+      description: job.description,
+      requirements: job.requirements?.join('\n') || '',
+      benefits: job.benefits?.join('\n') || '',
+      applicationUrl: job.applicationUrl,
+      sourceUrl: job.sourceUrl || '',
+      featured: Boolean(job.featured),
+      urgent: Boolean(job.urgent),
+    });
+    setModalOpen(true);
+  };
+
+  const handleSaveJob = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const quals = formData.qualifications.split(/[,،]+/).map(q => q.trim()).filter(Boolean);
+    const reqs = formData.requirements.split('\n').map(r => r.trim()).filter(Boolean);
+    const bens = formData.benefits.split('\n').map(b => b.trim()).filter(Boolean);
+
+    let sectorLabel = 'وظائف شركات كبرى';
+    if (formData.sector === 'government') sectorLabel = 'وظائف حكومية';
+    if (formData.sector === 'military') sectorLabel = 'وظائف عسكرية';
+    if (formData.sector === 'training') sectorLabel = 'تدريب منتهي بالتوظيف';
+    if (formData.sector === 'results') sectorLabel = 'نتائج القبول والترشيح';
+    if (formData.sector === 'remote') sectorLabel = 'وظائف عن بُعد';
+
+    let genderLabel = 'للجنسين (رجال ونساء)';
+    if (formData.gender === 'male') genderLabel = 'رجال فقط';
+    if (formData.gender === 'female') genderLabel = 'نساء فقط';
+
+    const payload = {
+      ...formData,
+      sectorLabel,
+      genderLabel,
+      qualifications: quals,
+      requirements: reqs,
+      benefits: bens,
+    };
+
+    try {
+      let savedJob: Job | null = null;
+      if (editingJob) {
+        const res = await fetch(`/api/jobs/${editingJob.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (data.success) savedJob = data.data;
+      } else {
+        const res = await fetch('/api/jobs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (data.success) savedJob = data.data;
+      }
+
+      await loadJobs();
+      setModalOpen(false);
+
+      // Auto-publish to Telegram if option checked and settings present
+      if (autoPublishTelegram && savedJob && telegramBotToken && telegramChannelId) {
+        await executeTelegramPublish(savedJob);
+      } else if (savedJob) {
+        // Open broadcast modal to offer instant broadcast
+        openBroadcastModal(savedJob);
+      }
+    } catch (err) {
+      alert('حدث خطأ أثناء حفظ الإعلان');
+    }
+  };
+
+  const handleDeleteJob = async (id: string) => {
+    if (!confirm('هل أنت متأكد من رغبتك في حذف هذا الإعلان الوظيفي نهائياً؟')) return;
+    try {
+      const res = await fetch(`/api/jobs/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setJobs(jobs.filter(j => j.id !== id));
+      }
+    } catch (err) {
+      alert('حدث خطأ أثناء الحذف');
+    }
+  };
+
+  // Broadcast Modal Trigger
+  const openBroadcastModal = (job: Job) => {
+    setBroadcastJob(job);
+    setPublishResult({ type: 'idle', message: '' });
+    setBroadcastModalOpen(true);
+  };
+
+  // Direct Telegram Dispatch
+  const executeTelegramPublish = async (job: Job) => {
+    if (!telegramBotToken || !telegramChannelId) {
+      setPublishResult({
+        type: 'error',
+        message: 'يرجى ضبط توكن البوت ومعرف القناة أولاً عبر زر "إعدادات القنوات".',
+      });
+      return;
+    }
+
+    setPublishingTelegram(true);
+    setPublishResult({ type: 'idle', message: '' });
+
+    try {
+      const res = await fetch('/api/publish/telegram', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jobId: job.id,
+          botToken: telegramBotToken,
+          channelId: telegramChannelId,
+          siteUrl: typeof window !== 'undefined' ? window.location.origin : 'https://wadhaef-alyoum.sa',
+        }),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        setPublishResult({
+          type: 'success',
+          message: 'تم نشر الإعلان بنجاح وفوراً في قناتك على التيليجرام! 🎉',
+        });
+      } else {
+        setPublishResult({
+          type: 'error',
+          message: data.error || 'فشل النشر، يرجى التأكد من صلاحية البوت كمسؤول في القناة.',
+        });
+      }
+    } catch (err: any) {
+      setPublishResult({
+        type: 'error',
+        message: 'حدث خطأ في الاتصال بالخادم.',
+      });
+    } finally {
+      setPublishingTelegram(false);
+    }
+  };
+
+  // WhatsApp 1-Click Share
+  const openWhatsAppBroadcast = (job: Job) => {
+    const siteUrl = typeof window !== 'undefined' ? window.location.origin : 'https://wadhaef-alyoum.sa';
+    const text = formatWhatsAppMessage(job, siteUrl);
+    const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+    window.open(url, '_blank');
+  };
+
+  // Copy Formatted Text
+  const copyFormatted = async (text: string, type: 'telegram' | 'whatsapp') => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedType(type);
+      setTimeout(() => setCopiedType(null), 2500);
+    } catch {
+      // Fallback
+    }
+  };
+
+  if (!isAuthenticated) {
+    return (
+      <div className="py-20 bg-slate-50 min-h-screen flex items-center justify-center px-4">
+        <div className="max-w-md w-full bg-white rounded-3xl border border-gray-200/80 shadow-lg p-8 text-center space-y-6">
+          <div className="w-16 h-16 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto">
+            <Lock className="w-8 h-8" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-black text-gray-900">لوحة التحكم الإدارية</h1>
+            <p className="text-xs text-gray-500 mt-1">أدخل رمز الدخول السريع لإدارة الإعلانات الوظيفية وقنوات النشر</p>
+          </div>
+
+          <form onSubmit={handleLogin} className="space-y-4">
+            <input
+              type="password"
+              value={pin}
+              onChange={(e) => setPin(e.target.value)}
+              placeholder="رمز الدخول (الافتراضي: 2026)"
+              className="w-full text-center text-lg font-bold tracking-widest py-3 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            />
+            {pinError && (
+              <p className="text-xs text-rose-600 font-semibold">رمز المرور غير صحيح. جرب 2026 أو admin</p>
+            )}
+            <button
+              type="submit"
+              className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl transition shadow-xs"
+            >
+              دخول لوحة التحكم
+            </button>
+          </form>
+
+          <p className="text-[11px] text-gray-400">
+            رمز المرور الافتراضي هو: <strong className="text-gray-600">2026</strong>
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const filtered = jobs.filter(j => 
+    j.title.toLowerCase().includes(search.toLowerCase()) || 
+    j.company.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const currentOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://wadhaef-alyoum.sa';
+
+  return (
+    <div className="py-8 bg-slate-50 min-h-screen">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+        {/* Top Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-200 pb-6">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-black text-gray-900 flex items-center gap-2">
+              <span>لوحة التحكم الإدارية والنشر الآلي</span>
+              <span className="text-xs font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-md">مدير النظام</span>
+            </h1>
+            <p className="text-xs text-gray-500 mt-1">
+              إدارة الإعلانات، والنشر الفوري بنقرة واحدة في قنوات التيليجرام والواتساب بتنسيق احترافي
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3 flex-wrap">
+            <button
+              onClick={() => setSettingsModalOpen(true)}
+              className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 hover:border-sky-400 text-gray-700 rounded-xl text-xs font-bold shadow-2xs hover:bg-sky-50 transition"
+              title="إعدادات بوت التيليجرام"
+            >
+              <Settings className="w-4 h-4 text-sky-600" />
+              <span>إعدادات قنوات النشر</span>
+            </button>
+
+            <button
+              onClick={openAddModal}
+              className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs transition"
+            >
+              <PlusCircle className="w-4 h-4" />
+              <span>إضافة إعلان جديد</span>
+            </button>
+
+            <button
+              onClick={handleLogout}
+              className="p-2.5 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-100 text-xs font-bold transition"
+              title="تسجيل الخروج"
+            >
+              <Unlock className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
+        {/* Telegram Auto-Publish Status Badge Banner */}
+        <div className="bg-gradient-to-r from-sky-50 to-emerald-50 border border-sky-200 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-sky-600 text-white flex items-center justify-center shrink-0">
+              <Radio className="w-5 h-5 animate-pulse" />
+            </div>
+            <div>
+              <strong className="text-gray-900 block text-sm">ميزة النشر الآلي عبر البوت مفعلة:</strong>
+              <span className="text-gray-600">
+                {telegramChannelId ? (
+                  <>القناة المتصلة حالياً: <strong className="text-sky-700 dir-ltr">{telegramChannelId}</strong></>
+                ) : (
+                  <span className="text-amber-700 font-bold">لم يتم ربط القناة بعد. انقر على «إعدادات قنوات النشر» لإدخال التوكن واسم القناة.</span>
+                )}
+              </span>
+            </div>
+          </div>
+
+          <button
+            onClick={() => setSettingsModalOpen(true)}
+            className="text-xs font-bold text-sky-700 hover:text-sky-800 underline shrink-0"
+          >
+            تعديل بيانات القناة والبوت ←
+          </button>
+        </div>
+
+        {/* Stats cards */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-2xs">
+            <span className="text-xs text-gray-500 block mb-1">إجمالي الإعلانات</span>
+            <span className="text-2xl font-black text-gray-900">{jobs.length}</span>
+          </div>
+
+          <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-2xs">
+            <span className="text-xs text-gray-500 block mb-1">الإعلانات النشطة</span>
+            <span className="text-2xl font-black text-emerald-600">
+              {jobs.filter(j => j.status === 'active' || j.status === 'expiring_soon').length}
+            </span>
+          </div>
+
+          <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-2xs">
+            <span className="text-xs text-gray-500 block mb-1">إعلانات النتائج</span>
+            <span className="text-2xl font-black text-rose-600">
+              {jobs.filter(j => j.sector === 'results').length}
+            </span>
+          </div>
+
+          <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-2xs">
+            <span className="text-xs text-gray-500 block mb-1">إجمالي المشاهدات</span>
+            <span className="text-2xl font-black text-sky-600">
+              {jobs.reduce((acc, curr) => acc + (curr.viewsCount || 0), 0).toLocaleString()}
+            </span>
+          </div>
+        </div>
+
+        {/* Search & Table */}
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-xs overflow-hidden">
+          <div className="p-4 border-b border-gray-100 flex items-center justify-between gap-4">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="w-4 h-4 text-gray-400 absolute right-3 top-3" />
+              <input
+                type="text"
+                placeholder="ابحث في الإعلانات..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full pr-9 pl-3 py-2 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              />
+            </div>
+            <span className="text-xs text-gray-500 font-medium">{filtered.length} إعلان</span>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-right text-xs">
+              <thead className="bg-gray-50 text-gray-600 font-bold border-b border-gray-200">
+                <tr>
+                  <th className="py-3.5 px-4">الإعلان الوظيفي</th>
+                  <th className="py-3.5 px-4">الجهة</th>
+                  <th className="py-3.5 px-4">القطاع</th>
+                  <th className="py-3.5 px-4">الحالة</th>
+                  <th className="py-3.5 px-4 text-center">النشر في القنوات</th>
+                  <th className="py-3.5 px-4 text-center">الإجراءات</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {filtered.map((job) => (
+                  <tr key={job.id} className="hover:bg-slate-50/70 transition">
+                    <td className="py-3 px-4 font-bold text-gray-900 max-w-xs truncate">
+                      <a href={`/jobs/${job.slug}`} target="_blank" className="hover:text-emerald-700 flex items-center gap-1.5">
+                        <span>{job.title}</span>
+                        <ExternalLink className="w-3 h-3 text-gray-400 shrink-0" />
+                      </a>
+                    </td>
+                    <td className="py-3 px-4 text-gray-700">{job.company}</td>
+                    <td className="py-3 px-4">
+                      <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-gray-100 text-gray-700">
+                        {job.sectorLabel}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4">
+                      <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
+                        job.status === 'active' ? 'bg-emerald-100 text-emerald-800' :
+                        job.status === 'results' ? 'bg-rose-100 text-rose-800' :
+                        job.status === 'expiring_soon' ? 'bg-amber-100 text-amber-800' :
+                        'bg-gray-100 text-gray-700'
+                      }`}>
+                        {job.status === 'active' ? 'متاح' : job.status === 'results' ? 'نتائج' : job.status === 'expiring_soon' ? 'ينتهي قريباً' : job.status}
+                      </span>
+                    </td>
+
+                    {/* Broadcast Action Cell */}
+                    <td className="py-3 px-4 text-center">
+                      <button
+                        onClick={() => openBroadcastModal(job)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-sky-500 to-emerald-600 hover:from-sky-600 hover:to-emerald-700 text-white rounded-lg text-xs font-bold transition shadow-2xs hover:scale-105 active:scale-95"
+                        title="نشر الإعلان في قنوات التيليجرام والواتساب بتنسيق احترافي"
+                      >
+                        <Send className="w-3.5 h-3.5" />
+                        <span>نشر بالقنوات</span>
+                      </button>
+                    </td>
+
+                    <td className="py-3 px-4">
+                      <div className="flex items-center justify-center gap-2">
+                        <button
+                          onClick={() => openEditModal(job)}
+                          className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                          title="تعديل"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteJob(job.id)}
+                          className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition"
+                          title="حذف"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Modal 1: Broadcast & Publish Preview Modal */}
+        {broadcastModalOpen && broadcastJob && (
+          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+            <div className="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-6 max-h-[92vh] overflow-y-auto shadow-2xl">
+              <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center">
+                    <Send className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base sm:text-lg font-black text-gray-900">
+                      نشر الإعلان في قنوات التيليجرام والواتساب
+                    </h3>
+                    <p className="text-xs text-gray-500">معاينة التنسيق الجاهز للنشر المباشر</p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setBroadcastModalOpen(false)}
+                  className="text-gray-400 hover:text-gray-600 text-xl font-bold"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Channel Selector Tabs */}
+              <div className="flex items-center gap-2 border-b border-gray-200">
+                <button
+                  onClick={() => setBroadcastTab('telegram')}
+                  className={`flex items-center gap-2 pb-3 px-4 text-xs font-bold border-b-2 transition ${
+                    broadcastTab === 'telegram'
+                      ? 'border-sky-500 text-sky-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-800'
+                  }`}
+                >
+                  <Send className="w-4 h-4 text-sky-500" />
+                  <span>تنسيق قناة التيليجرام</span>
+                </button>
+
+                <button
+                  onClick={() => setBroadcastTab('whatsapp')}
+                  className={`flex items-center gap-2 pb-3 px-4 text-xs font-bold border-b-2 transition ${
+                    broadcastTab === 'whatsapp'
+                      ? 'border-emerald-500 text-emerald-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-800'
+                  }`}
+                >
+                  <MessageCircle className="w-4 h-4 text-emerald-500" />
+                  <span>تنسيق قناة ومجموعات الواتساب</span>
+                </button>
+              </div>
+
+              {/* Status alerts */}
+              {publishResult.type === 'success' && (
+                <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 p-3.5 rounded-xl text-xs flex items-center gap-2 font-bold animate-in fade-in">
+                  <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>{publishResult.message}</span>
+                </div>
+              )}
+
+              {publishResult.type === 'error' && (
+                <div className="bg-rose-50 border border-rose-200 text-rose-800 p-3.5 rounded-xl text-xs flex items-center gap-2 font-bold animate-in fade-in">
+                  <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                  <span>{publishResult.message}</span>
+                </div>
+              )}
+
+              {/* Message Box Preview */}
+              <div className="relative">
+                <div className="text-[11px] font-bold text-gray-500 mb-1.5 flex items-center justify-between">
+                  <span>معاينة المنشور قبل الإرسال:</span>
+                  <span className="text-gray-400">جاهز ومخصص بمؤثرات ورموز تعبيرية</span>
+                </div>
+                <div className="bg-slate-900 text-slate-100 p-4 rounded-2xl font-mono text-xs whitespace-pre-wrap leading-relaxed max-h-72 overflow-y-auto border border-slate-800 selection:bg-emerald-500 selection:text-white">
+                  {broadcastTab === 'telegram'
+                    ? formatTelegramMessage(broadcastJob, currentOrigin)
+                    : formatWhatsAppMessage(broadcastJob, currentOrigin)}
+                </div>
+              </div>
+
+              {/* Actions Grid */}
+              <div className="pt-2 space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {/* Action 1: Telegram Publish via Bot */}
+                  <button
+                    onClick={() => executeTelegramPublish(broadcastJob)}
+                    disabled={publishingTelegram}
+                    className="flex items-center justify-center gap-2 py-3 px-4 bg-sky-600 hover:bg-sky-700 disabled:bg-sky-400 text-white rounded-xl text-xs font-bold shadow-xs transition hover:scale-[1.01]"
+                  >
+                    <Send className="w-4 h-4" />
+                    <span>
+                      {publishingTelegram
+                        ? 'جاري النشر في القناة...'
+                        : 'نشر فوري في قناة التيليجرام'}
+                    </span>
+                  </button>
+
+                  {/* Action 2: WhatsApp 1-Click Broadcast */}
+                  <button
+                    onClick={() => openWhatsAppBroadcast(broadcastJob)}
+                    className="flex items-center justify-center gap-2 py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs transition hover:scale-[1.01]"
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                    <span>إرسال عبر الواتساب (قنوات ومجموعات)</span>
+                  </button>
+                </div>
+
+                {/* Action 3: Copy Formatted text button */}
+                <button
+                  onClick={() =>
+                    copyFormatted(
+                      broadcastTab === 'telegram'
+                        ? formatTelegramMessage(broadcastJob, currentOrigin)
+                        : formatWhatsAppMessage(broadcastJob, currentOrigin),
+                      broadcastTab
+                    )
+                  }
+                  className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-xl text-xs font-bold transition"
+                >
+                  {copiedType === broadcastTab ? (
+                    <>
+                      <Check className="w-4 h-4 text-emerald-600" />
+                      <span className="text-emerald-700">تم نسخ المنشور بنجاح إلى الحافظة!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-4 h-4" />
+                      <span>نسخ النص المنسق لنشره في أي منصة يدوياً</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* Bot Guide Callout */}
+              <div className="bg-sky-50/60 border border-sky-100 rounded-2xl p-4 text-[11px] text-sky-900 space-y-1">
+                <strong>💡 كيف يعمل النشر المباشر؟</strong>
+                <p className="text-sky-800 leading-relaxed">
+                  يقوم الموقع بإرسال المنشور إلى قناتك فوراً عبر Telegram Bot API مع كافة التنسيقات والروابط، كما يفتح لك تطبيق واتساب لإرسال الإعلان إلى قناتك أو مجموعاتك بنقرة واحدة.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal 2: Settings for Telegram Bot & Channel */}
+        {settingsModalOpen && (
+          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+            <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 space-y-5 shadow-2xl">
+              <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-sky-100 text-sky-600 flex items-center justify-center">
+                    <Settings className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-black text-gray-900">إعدادات النشر على التيليجرام</h3>
+                    <p className="text-xs text-gray-500">اربط قناتك بالبوت للنشر التلقائي والمباشر</p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setSettingsModalOpen(false)}
+                  className="text-gray-400 hover:text-gray-600 text-lg font-bold"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <form onSubmit={saveSettings} className="space-y-4 text-xs">
+                {/* Bot Token */}
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1">
+                    توكن بوت التيليجرام (Telegram Bot Token) *
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    value={telegramBotToken}
+                    onChange={(e) => setTelegramBotToken(e.target.value)}
+                    placeholder="مثال: 7123456789:AAHk... من @BotFather"
+                    className="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-xl font-mono text-xs focus:ring-2 focus:ring-sky-500 focus:bg-white"
+                  />
+                  <p className="text-[10px] text-gray-400 mt-1">
+                    احصل عليه مجاناً عبر فتح محادثة مع <a href="https://t.me/BotFather" target="_blank" className="text-sky-600 font-bold underline">@BotFather</a> ثم إرسال الأمر <code>/newbot</code>
+                  </p>
+                </div>
+
+                {/* Channel ID */}
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1">
+                    معرف القناة (Channel ID / Username) *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={telegramChannelId}
+                    onChange={(e) => setTelegramChannelId(e.target.value)}
+                    placeholder="مثال: @my_job_channel أو -100123456789"
+                    className="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-xl font-mono text-xs focus:ring-2 focus:ring-sky-500 focus:bg-white dir-ltr text-right"
+                  />
+                  <p className="text-[10px] text-gray-400 mt-1">
+                    تأكد من إضافة البوت كـ <strong>مسؤول (Admin)</strong> في قناتك مع صلاحية نشر الرسائل (Post Messages).
+                  </p>
+                </div>
+
+                <div className="pt-3 border-t border-gray-100 flex items-center justify-end gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setSettingsModalOpen(false)}
+                    className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl"
+                  >
+                    إلغاء
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2 bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-xl shadow-xs"
+                  >
+                    حفظ الإعدادات
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Modal 3: Add / Edit Job Modal */}
+        {modalOpen && (
+          <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+            <div className="bg-white rounded-3xl max-w-3xl w-full p-6 sm:p-8 space-y-6 max-h-[90vh] overflow-y-auto shadow-2xl">
+              <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+                <h3 className="text-lg font-black text-gray-900">
+                  {editingJob ? 'تعديل الإعلان الوظيفي' : 'إضافة إعلان وظيفي جديد'}
+                </h3>
+                <button
+                  onClick={() => setModalOpen(false)}
+                  className="text-gray-400 hover:text-gray-600 text-xl font-bold"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveJob} className="space-y-4 text-xs">
+                {/* Title */}
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1">عنوان الإعلان الوظيفي *</label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.title}
+                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                    placeholder="مثال: شركة أرامكو تعلن فتح باب التسجيل في..."
+                    className="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:bg-white"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Company */}
+                  <div>
+                    <label className="block font-bold text-gray-700 mb-1">جهة العمل / الشركة / الوزارة *</label>
+                    <input
+                      type="text"
+                      required
+                      value={formData.company}
+                      onChange={(e) => setFormData({ ...formData, company: e.target.value })}
+                      placeholder="مثال: وزارة الحرس الوطني"
+                      className="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-xl"
+                    />
+                  </div>
+
+                  {/* Logo URL */}
+                  <div>
+                    <label className="block font-bold text-gray-700 mb-1">رابط الشعار (صورة)</label>
+                    <input
+                      type="text"
+                      value={formData.companyLogo}
+                      onChange={(e) => setFormData({ ...formData, companyLogo: e.target.value })}
+                      placeholder="https://..."
+                      className="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-xl"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  {/* Sector */}
+                  <div>
+                    <label className="block font-bold text-gray-700 mb-1">القطاع</label>
+                    <select
+                      value={formData.sector}
+                      onChange={(e) => setFormData({ ...formData, sector: e.target.value as JobSector })}
+                      className="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-xl"
+                    >
+                      <option value="government">وظائف حكومية</option>
+                      <option value="military">وظائف عسكرية</option>
+                      <option value="corporate">وظائف شركات كبرى</option>
+                      <option value="training">تدريب منتهي بالتوظيف</option>
+                      <option value="results">نتائج القبول والترشيح</option>
+                      <option value="remote">وظائف عن بُعد</option>
+                    </select>
+                  </div>
+
+                  {/* Gender */}
+                  <div>
+                    <label className="block font-bold text-gray-700 mb-1">الجنس</label>
+                    <select
+                      value={formData.gender}
+                      onChange={(e) => setFormData({ ...formData, gender: e.target.value as GenderType })}
+                      className="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-xl"
+                    >
+                      <option value="both">للجنسين (رجال ونساء)</option>
+                      <option value="male">رجال فقط</option>
+                      <option value="female">نساء فقط</option>
+                    </select>
+                  </div>
+
+                  {/* Status */}
+                  <div>
+                    <label className="block font-bold text-gray-700 mb-1">حالة التقديم</label>
+                    <select
+                      value={formData.status}
+                      onChange={(e) => setFormData({ ...formData, status: e.target.value as JobStatus })}
+                      className="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-xl"
+                    >
+                      <option value="active">متاح الآن للتقديم</option>
+                      <option value="expiring_soon">ينتهي قريباً (عاجل)</option>
+                      <option value="upcoming">يبدأ قريباً</option>
+                      <option value="results">أعلنت نتائج القبول</option>
+                      <option value="expired">منتهي التقديم</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  {/* City */}
+                  <div>
+                    <label className="block font-bold text-gray-700 mb-1">المدينة / المقر</label>
+                    <input
+                      type="text"
+                      value={formData.city}
+                      onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                      placeholder="الرياض، جدة، كافة المناطق..."
+                      className="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-xl"
+                    />
+                  </div>
+
+                  {/* Start Date */}
+                  <div>
+                    <label className="block font-bold text-gray-700 mb-1">تاريخ بداية التقديم</label>
+                    <input
+                      type="date"
+                      value={formData.startDate}
+                      onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                      className="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-xl"
+                    />
+                  </div>
+
+                  {/* End Date */}
+                  <div>
+                    <label className="block font-bold text-gray-700 mb-1">تاريخ نهاية التقديم</label>
+                    <input
+                      type="date"
+                      value={formData.endDate}
+                      onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                      className="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-xl"
+                    />
+                  </div>
+                </div>
+
+                {/* Qualifications */}
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1">المؤهلات المطلوبة (مفصولة بفاصلة)</label>
+                  <input
+                    type="text"
+                    value={formData.qualifications}
+                    onChange={(e) => setFormData({ ...formData, qualifications: e.target.value })}
+                    placeholder="ثانوية عامة، دبلوم، بكالوريوس"
+                    className="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-xl"
+                  />
+                </div>
+
+                {/* URLs */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block font-bold text-gray-700 mb-1">رابط التقديم المباشر *</label>
+                    <input
+                      type="url"
+                      required
+                      value={formData.applicationUrl}
+                      onChange={(e) => setFormData({ ...formData, applicationUrl: e.target.value })}
+                      placeholder="https://..."
+                      className="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-xl"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-gray-700 mb-1">رابط المصدر الرسمي</label>
+                    <input
+                      type="url"
+                      value={formData.sourceUrl}
+                      onChange={(e) => setFormData({ ...formData, sourceUrl: e.target.value })}
+                      placeholder="https://..."
+                      className="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-xl"
+                    />
+                  </div>
+                </div>
+
+                {/* Summary */}
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1">نبذة سريعة (للبطاقة ومحركات البحث SEO)</label>
+                  <textarea
+                    rows={2}
+                    value={formData.summary}
+                    onChange={(e) => setFormData({ ...formData, summary: e.target.value })}
+                    placeholder="موجز جذاب في جملتين..."
+                    className="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-xl"
+                  />
+                </div>
+
+                {/* Description */}
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1">تفاصيل الإعلان والشواغر</label>
+                  <textarea
+                    rows={4}
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    className="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-xl"
+                  />
+                </div>
+
+                {/* Requirements */}
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1">الشروط والمتطلبات (كل شرط في سطر مستقل)</label>
+                  <textarea
+                    rows={3}
+                    value={formData.requirements}
+                    onChange={(e) => setFormData({ ...formData, requirements: e.target.value })}
+                    className="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-xl"
+                  />
+                </div>
+
+                {/* Checkboxes & Auto-publish option */}
+                <div className="pt-2 border-t border-gray-100 space-y-3">
+                  <div className="flex items-center gap-6">
+                    <label className="flex items-center gap-2 cursor-pointer font-bold text-gray-800">
+                      <input
+                        type="checkbox"
+                        checked={formData.featured}
+                        onChange={(e) => setFormData({ ...formData, featured: e.target.checked })}
+                        className="w-4 h-4 text-emerald-600 rounded"
+                      />
+                      <span>إعلان مميز (يظهر في أعلى الصفحة)</span>
+                    </label>
+
+                    <label className="flex items-center gap-2 cursor-pointer font-bold text-rose-700">
+                      <input
+                        type="checkbox"
+                        checked={formData.urgent}
+                        onChange={(e) => setFormData({ ...formData, urgent: e.target.checked })}
+                        className="w-4 h-4 text-rose-600 rounded"
+                      />
+                      <span>إعلان عاجل (ينتهي قريباً)</span>
+                    </label>
+                  </div>
+
+                  {/* Auto publish on Telegram checkbox */}
+                  <div className="bg-sky-50 p-3 rounded-xl border border-sky-200">
+                    <label className="flex items-center gap-2.5 cursor-pointer font-bold text-sky-950">
+                      <input
+                        type="checkbox"
+                        checked={autoPublishTelegram}
+                        onChange={(e) => setAutoPublishTelegram(e.target.checked)}
+                        className="w-4 h-4 text-sky-600 rounded"
+                      />
+                      <span className="flex items-center gap-1.5">
+                        <Send className="w-3.5 h-3.5 text-sky-600" />
+                        نشر الإعلان تلقائياً في قناة التيليجرام فور النقر على حفظ
+                      </span>
+                    </label>
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-gray-100 flex items-center justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setModalOpen(false)}
+                    className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl"
+                  >
+                    إلغاء
+                  </button>
+
+                  <button
+                    type="submit"
+                    className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-xs"
+                  >
+                    {editingJob ? 'حفظ التعديلات' : 'نشر الإعلان الآن'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
