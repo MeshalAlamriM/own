@@ -11,7 +11,13 @@ export const metadata: Metadata = {
 
 export default async function TrainingPage() {
   const allJobs = await getAllJobs();
-  const trainingJobs = allJobs.filter((j) => j.sector === 'training');
+  const trainingJobs = allJobs.filter(
+    (j) =>
+      j.sector === 'training' ||
+      j.tags?.some((t) => t.includes('تدريب')) ||
+      j.title.includes('تدريب') ||
+      j.summary.includes('تدريب')
+  );
 
   return (
     <div className="py-10 bg-slate-50 min-h-screen">

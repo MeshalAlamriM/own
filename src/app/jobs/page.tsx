@@ -22,14 +22,7 @@ interface JobsPageProps {
 
 async function JobsFeedContainer({ searchParams }: JobsPageProps) {
   const params = await searchParams;
-  const jobs = await getAllJobs({
-    sector: params.sector,
-    qualification: params.qualification,
-    gender: params.gender,
-    city: params.city,
-    status: params.status,
-    query: params.q,
-  });
+  const jobs = await getAllJobs();
 
   const getPageTitle = () => {
     switch (params.sector) {
@@ -61,7 +54,15 @@ async function JobsFeedContainer({ searchParams }: JobsPageProps) {
         </p>
       </div>
 
-      <HomeJobFeed initialJobs={jobs} />
+      <HomeJobFeed
+        initialJobs={jobs}
+        defaultSector={params.sector || 'all'}
+        defaultQualification={params.qualification || 'all'}
+        defaultGender={params.gender || 'all'}
+        defaultCity={params.city || 'all'}
+        defaultStatus={params.status || 'all'}
+        defaultQuery={params.q || ''}
+      />
     </div>
   );
 }

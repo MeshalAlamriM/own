@@ -11,7 +11,14 @@ export const metadata: Metadata = {
 
 export default async function ResultsPage() {
   const allJobs = await getAllJobs();
-  const results = allJobs.filter((j) => j.sector === 'results' || j.status === 'results');
+  const results = allJobs.filter(
+    (j) =>
+      j.sector === 'results' ||
+      j.status === 'results' ||
+      j.tags?.some((t) => t.includes('نتائج')) ||
+      j.title.includes('نتائج') ||
+      j.summary.includes('نتائج')
+  );
 
   return (
     <div className="py-10 bg-slate-50 min-h-screen">

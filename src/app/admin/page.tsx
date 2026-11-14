@@ -26,7 +26,8 @@ import {
   Check,
   Settings,
   Radio,
-  Share2
+  Share2,
+  Database
 } from 'lucide-react';
 
 export default function AdminPage() {
@@ -85,6 +86,26 @@ export default function AdminPage() {
     featured: false,
     urgent: false,
   });
+
+  const [seeding, setSeeding] = useState(false);
+
+  const handleSeedJobs = async () => {
+    try {
+      setSeeding(true);
+      const res = await fetch('/api/seed');
+      const data = await res.json();
+      if (data.success) {
+        alert(data.message || 'تمت مزامنة كافة الوظائف بنجاح!');
+        loadJobs();
+      } else {
+        alert('حدث خطأ أثناء المزامنة: ' + (data.error || 'فشلت المزامنة'));
+      }
+    } catch (e: any) {
+      alert('خطأ أثناء المزامنة: ' + e?.message);
+    } finally {
+      setSeeding(false);
+    }
+  };
 
   const loadJobs = async () => {
     try {
@@ -416,6 +437,16 @@ export default function AdminPage() {
             >
               <Settings className="w-4 h-4 text-sky-600" />
               <span>إعدادات قنوات النشر</span>
+            </button>
+
+            <button
+              onClick={handleSeedJobs}
+              disabled={seeding}
+              className="flex items-center gap-2 px-4 py-2.5 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 text-indigo-700 rounded-xl text-xs font-bold shadow-2xs transition disabled:opacity-50"
+              title="مزامنة الوظائف التأسيسية لكافة الأقسام إلى قاعدة البيانات السحابية"
+            >
+              <Database className="w-4 h-4 text-indigo-600" />
+              <span>{seeding ? 'جاري المزامنة...' : 'مزامنة أقسام الوظائف'}</span>
             </button>
 
             <button

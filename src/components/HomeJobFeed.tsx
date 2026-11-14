@@ -8,15 +8,29 @@ import { Flame, Sparkles, Inbox } from 'lucide-react';
 
 interface HomeJobFeedProps {
   initialJobs: Job[];
+  defaultSector?: JobSector | 'all';
+  defaultQualification?: string;
+  defaultGender?: GenderType | 'all';
+  defaultCity?: string;
+  defaultStatus?: JobStatus | 'all';
+  defaultQuery?: string;
 }
 
-export default function HomeJobFeed({ initialJobs }: HomeJobFeedProps) {
-  const [selectedSector, setSelectedSector] = useState<JobSector | 'all'>('all');
-  const [selectedQualification, setSelectedQualification] = useState<string>('all');
-  const [selectedGender, setSelectedGender] = useState<GenderType | 'all'>('all');
-  const [selectedCity, setSelectedCity] = useState<string>('all');
-  const [selectedStatus, setSelectedStatus] = useState<JobStatus | 'all'>('all');
-  const [searchQuery, setSearchQuery] = useState<string>('');
+export default function HomeJobFeed({
+  initialJobs,
+  defaultSector = 'all',
+  defaultQualification = 'all',
+  defaultGender = 'all',
+  defaultCity = 'all',
+  defaultStatus = 'all',
+  defaultQuery = '',
+}: HomeJobFeedProps) {
+  const [selectedSector, setSelectedSector] = useState<JobSector | 'all'>(defaultSector);
+  const [selectedQualification, setSelectedQualification] = useState<string>(defaultQualification);
+  const [selectedGender, setSelectedGender] = useState<GenderType | 'all'>(defaultGender);
+  const [selectedCity, setSelectedCity] = useState<string>(defaultCity);
+  const [selectedStatus, setSelectedStatus] = useState<JobStatus | 'all'>(defaultStatus);
+  const [searchQuery, setSearchQuery] = useState<string>(defaultQuery);
 
   const handleReset = () => {
     setSelectedSector('all');
@@ -40,8 +54,31 @@ export default function HomeJobFeed({ initialJobs }: HomeJobFeedProps) {
       }
 
       // Sector
-      if (selectedSector !== 'all' && job.sector !== selectedSector) {
-        return false;
+      if (selectedSector !== 'all') {
+        if (selectedSector === 'remote') {
+          const isRemote =
+            job.sector === 'remote' ||
+            job.city.includes('عن بعد') ||
+            job.location.includes('عن بعد') ||
+            job.tags?.some((t) => t.includes('عن بعد'));
+          if (!isRemote) return false;
+        } else if (selectedSector === 'results') {
+          const isResult =
+            job.sector === 'results' ||
+            job.status === 'results' ||
+            job.tags?.some((t) => t.includes('نتائج')) ||
+            job.title.includes('نتائج');
+          if (!isResult) return false;
+        } else if (selectedSector === 'training') {
+          const isTraining =
+            job.sector === 'training' ||
+            job.tags?.some((t) => t.includes('تدريب')) ||
+            job.title.includes('تدريب') ||
+            job.summary.includes('تدريب');
+          if (!isTraining) return false;
+        } else if (job.sector !== selectedSector) {
+          return false;
+        }
       }
 
       // Qualification
