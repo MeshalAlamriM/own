@@ -151,15 +151,15 @@ export async function getAllJobs(filters?: JobFilterParams): Promise<Job[]> {
 
         if (filters?.query) {
           const q = filters.query.toLowerCase().trim();
-          results = results.filter(j => 
-            j.title.toLowerCase().includes(q) || 
-            j.company.toLowerCase().includes(q) || 
+          results = results.filter(j =>
+            j.title.toLowerCase().includes(q) ||
+            j.company.toLowerCase().includes(q) ||
             j.summary.toLowerCase().includes(q)
           );
         }
 
         if (filters?.qualification && filters.qualification !== 'all') {
-          results = results.filter(j => 
+          results = results.filter(j =>
             j.qualifications.some(qual => qual.includes(filters.qualification!))
           );
         }

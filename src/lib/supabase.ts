@@ -11,8 +11,8 @@ export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseKey);
 
 export const supabase = isSupabaseConfigured
   ? createClient(supabaseUrl, supabaseKey, {
-      auth: {
-        persistSession: false,
-      },
-    })
+    auth: {
+      persistSession: false,
+    },
+  })
   : null;
