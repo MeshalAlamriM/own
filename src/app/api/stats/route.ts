@@ -1,7 +1,8 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, connection } from 'next/server';
 import { getJobStats } from '@/data/store';
 
 export async function GET() {
+  await connection();
   try {
     const stats = await getJobStats();
     return NextResponse.json({ success: true, data: stats });

@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { connection } from 'next/server';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
 export async function GET(request: NextRequest) {
+  await connection();
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
   const key = 
     process.env.SUPABASE_SERVICE_ROLE_KEY || 
