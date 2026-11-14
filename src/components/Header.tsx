@@ -10,14 +10,13 @@ import {
   MessageSquare, 
   Menu, 
   X, 
-  Search, 
   Flame, 
   ShieldCheck, 
   GraduationCap, 
   Building2, 
   Laptop, 
   CheckCircle,
-  PlusCircle
+  Bell
 } from 'lucide-react';
 
 export default function Header() {
@@ -84,10 +83,6 @@ export default function Header() {
               <MessageSquare className="w-3.5 h-3.5" />
               <span>قناة الواتساب</span>
             </a>
-            <span className="text-slate-700">|</span>
-            <Link href="/admin" className="text-slate-400 hover:text-white transition">
-              لوحة التحكم
-            </Link>
           </div>
         </div>
       </div>
@@ -130,7 +125,7 @@ export default function Header() {
             })}
           </nav>
 
-          {/* Action buttons (Saved jobs & Post / Admin) */}
+          {/* Action buttons (Saved jobs & Telegram channel) */}
           <div className="hidden sm:flex items-center gap-2.5">
             <Link
               href="/saved"
@@ -145,13 +140,15 @@ export default function Header() {
               )}
             </Link>
 
-            <Link
-              href="/admin"
-              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-gray-900 hover:bg-gray-800 text-white text-xs font-bold transition shadow-xs"
+            <a
+              href="https://t.me"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold transition shadow-xs"
             >
-              <PlusCircle className="w-4 h-4 text-emerald-400" />
-              <span>إضافة إعلان وظيفي</span>
-            </Link>
+              <Send className="w-4 h-4" />
+              <span>قناة التيليجرام</span>
+            </a>
           </div>
 
           {/* Mobile menu toggle */}
@@ -198,14 +195,16 @@ export default function Header() {
           })}
 
           <div className="pt-3 border-t border-gray-100 flex flex-col gap-2">
-            <Link
-              href="/admin"
+            <a
+              href="https://t.me"
+              target="_blank"
+              rel="noopener noreferrer"
               onClick={() => setMobileMenuOpen(false)}
-              className="flex items-center justify-center gap-2 w-full py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-bold shadow-xs"
+              className="flex items-center justify-center gap-2 w-full py-2.5 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-sm font-bold shadow-xs transition"
             >
-              <PlusCircle className="w-4 h-4" />
-              <span>إضافة إعلان (لوحة التحكم)</span>
-            </Link>
+              <Send className="w-4 h-4" />
+              <span>انضم لقناة الوظائف على التيليجرام</span>
+            </a>
           </div>
         </div>
       )}
