@@ -368,7 +368,7 @@ export default function AdminPage() {
               className="w-full text-center text-lg font-bold tracking-widest py-3 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
             />
             {pinError && (
-              <p className="text-xs text-rose-600 font-semibold">رمز المرور غير صحيح. جرب 2026 أو admin</p>
+              <p className="text-xs text-rose-600 font-semibold">heelo</p>
             )}
             <button
               type="submit"
@@ -536,9 +536,9 @@ export default function AdminPage() {
                     </td>
                     <td className="py-3 px-4">
                       <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${job.status === 'active' ? 'bg-emerald-100 text-emerald-800' :
-                          job.status === 'results' ? 'bg-rose-100 text-rose-800' :
-                            job.status === 'expiring_soon' ? 'bg-amber-100 text-amber-800' :
-                              'bg-gray-100 text-gray-700'
+                        job.status === 'results' ? 'bg-rose-100 text-rose-800' :
+                          job.status === 'expiring_soon' ? 'bg-amber-100 text-amber-800' :
+                            'bg-gray-100 text-gray-700'
                         }`}>
                         {job.status === 'active' ? 'متاح' : job.status === 'results' ? 'نتائج' : job.status === 'expiring_soon' ? 'ينتهي قريباً' : job.status}
                       </span>
@@ -611,8 +611,8 @@ export default function AdminPage() {
                 <button
                   onClick={() => setBroadcastTab('telegram')}
                   className={`flex items-center gap-2 pb-3 px-4 text-xs font-bold border-b-2 transition ${broadcastTab === 'telegram'
-                      ? 'border-sky-500 text-sky-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-800'
+                    ? 'border-sky-500 text-sky-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-800'
                     }`}
                 >
                   <Send className="w-4 h-4 text-sky-500" />
@@ -622,8 +622,8 @@ export default function AdminPage() {
                 <button
                   onClick={() => setBroadcastTab('whatsapp')}
                   className={`flex items-center gap-2 pb-3 px-4 text-xs font-bold border-b-2 transition ${broadcastTab === 'whatsapp'
-                      ? 'border-emerald-500 text-emerald-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-800'
+                    ? 'border-emerald-500 text-emerald-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-800'
                     }`}
                 >
                   <MessageCircle className="w-4 h-4 text-emerald-500" />

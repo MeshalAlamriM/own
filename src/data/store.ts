@@ -2,10 +2,11 @@ import fs from 'fs';
 import path from 'path';
 import { Job, JobFilterParams } from '../types/job';
 import { INITIAL_JOBS } from './initial-jobs';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
 const DATA_FILE = path.join(process.cwd(), 'data', 'jobs.json');
 
-// In-memory cache for fast reads
+// In-memory cache for fast local reads
 let memoryJobs: Job[] | null = null;
 
 function ensureDataDirectory() {
@@ -59,7 +60,122 @@ export function saveJobsToStorage(jobs: Job[]) {
   }
 }
 
+// Convert Supabase DB row to TypeScript Job model
+function rowToJob(row: any): Job {
+  return {
+    id: row.id,
+    slug: row.slug,
+    title: row.title,
+    company: row.company,
+    companyLogo: row.company_logo || row.companyLogo,
+    sector: row.sector,
+    sectorLabel: row.sector_label || row.sectorLabel,
+    gender: row.gender,
+    genderLabel: row.gender_label || row.genderLabel,
+    qualifications: Array.isArray(row.qualifications) ? row.qualifications : [],
+    location: row.location,
+    city: row.city,
+    status: row.status,
+    startDate: row.start_date || row.startDate,
+    endDate: row.end_date || row.endDate,
+    publishDate: row.publish_date || row.publishDate,
+    experience: row.experience,
+    salary: row.salary,
+    summary: row.summary,
+    description: row.description,
+    requirements: Array.isArray(row.requirements) ? row.requirements : [],
+    benefits: Array.isArray(row.benefits) ? row.benefits : [],
+    applicationUrl: row.application_url || row.applicationUrl,
+    sourceUrl: row.source_url || row.sourceUrl,
+    featured: Boolean(row.featured),
+    urgent: Boolean(row.urgent),
+    viewsCount: Number(row.views_count ?? row.viewsCount ?? 1),
+    tags: Array.isArray(row.tags) ? row.tags : []
+  };
+}
+
+// Convert TypeScript Job model to Supabase DB row
+function jobToRow(job: Job) {
+  return {
+    id: job.id,
+    slug: job.slug,
+    title: job.title,
+    company: job.company,
+    company_logo: job.companyLogo,
+    sector: job.sector,
+    sector_label: job.sectorLabel,
+    gender: job.gender,
+    gender_label: job.genderLabel,
+    qualifications: job.qualifications,
+    location: job.location,
+    city: job.city,
+    status: job.status,
+    start_date: job.startDate,
+    end_date: job.endDate,
+    publish_date: job.publishDate,
+    experience: job.experience,
+    salary: job.salary,
+    summary: job.summary,
+    description: job.description,
+    requirements: job.requirements,
+    benefits: job.benefits,
+    application_url: job.applicationUrl,
+    source_url: job.sourceUrl,
+    featured: job.featured,
+    urgent: job.urgent,
+    views_count: job.viewsCount,
+    tags: job.tags
+  };
+}
+
 export async function getAllJobs(filters?: JobFilterParams): Promise<Job[]> {
+  // If Supabase is configured, fetch from cloud
+  if (isSupabaseConfigured && supabase) {
+    try {
+      let query = supabase.from('jobs').select('*');
+
+      if (filters?.sector && filters.sector !== 'all') {
+        query = query.eq('sector', filters.sector);
+      }
+      if (filters?.status && filters.status !== 'all') {
+        query = query.eq('status', filters.status);
+      }
+      if (filters?.city && filters.city !== 'all') {
+        query = query.ilike('city', `%${filters.city}%`);
+      }
+
+      const { data, error } = await query.order('publish_date', { ascending: false });
+
+      if (!error && data && data.length > 0) {
+        let results = data.map(rowToJob);
+
+        if (filters?.query) {
+          const q = filters.query.toLowerCase().trim();
+          results = results.filter(j => 
+            j.title.toLowerCase().includes(q) || 
+            j.company.toLowerCase().includes(q) || 
+            j.summary.toLowerCase().includes(q)
+          );
+        }
+
+        if (filters?.qualification && filters.qualification !== 'all') {
+          results = results.filter(j => 
+            j.qualifications.some(qual => qual.includes(filters.qualification!))
+          );
+        }
+
+        if (filters?.gender && filters.gender !== 'all') {
+          results = results.filter(j => j.gender === 'both' || j.gender === filters.gender);
+        }
+
+        return results;
+      }
+    } catch (e) {
+      console.error('Supabase query error, falling back to local storage:', e);
+    }
+  }
+
+  // Fallback to local storage
   const jobs = getJobsFromStorage();
 
   if (!filters) {
@@ -67,7 +183,6 @@ export async function getAllJobs(filters?: JobFilterParams): Promise<Job[]> {
   }
 
   return jobs.filter((job) => {
-    // Query search (title, company, summary, tags)
     if (filters.query) {
       const q = filters.query.toLowerCase().trim();
       const matchTitle = job.title.toLowerCase().includes(q);
@@ -79,45 +194,29 @@ export async function getAllJobs(filters?: JobFilterParams): Promise<Job[]> {
       }
     }
 
-    // Sector filter
     if (filters.sector && filters.sector !== 'all') {
-      if (job.sector !== filters.sector) {
-        return false;
-      }
+      if (job.sector !== filters.sector) return false;
     }
 
-    // Qualification filter
     if (filters.qualification && filters.qualification !== 'all') {
       const hasQual = job.qualifications.some(q => q.includes(filters.qualification!) || filters.qualification!.includes(q));
-      if (!hasQual) {
-        return false;
-      }
+      if (!hasQual) return false;
     }
 
-    // Gender filter
     if (filters.gender && filters.gender !== 'all') {
-      if (job.gender !== 'both' && job.gender !== filters.gender) {
-        return false;
-      }
+      if (job.gender !== 'both' && job.gender !== filters.gender) return false;
     }
 
-    // City / Region filter
     if (filters.city && filters.city !== 'all') {
-      if (!job.city.includes(filters.city) && !job.location.includes(filters.city)) {
-        return false;
-      }
+      if (!job.city.includes(filters.city) && !job.location.includes(filters.city)) return false;
     }
 
-    // Status filter
     if (filters.status && filters.status !== 'all') {
-      if (job.status !== filters.status) {
-        return false;
-      }
+      if (job.status !== filters.status) return false;
     }
 
     return true;
   }).sort((a, b) => {
-    // Featured first, then newest
     if (a.featured && !b.featured) return -1;
     if (!a.featured && b.featured) return 1;
     return new Date(b.publishDate).getTime() - new Date(a.publishDate).getTime();
@@ -125,22 +224,51 @@ export async function getAllJobs(filters?: JobFilterParams): Promise<Job[]> {
 }
 
 export async function getJobBySlug(slug: string): Promise<Job | undefined> {
-  const jobs = getJobsFromStorage();
-  // Support both slug matching and id matching
   const decodedSlug = decodeURIComponent(slug);
+
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('jobs')
+        .select('*')
+        .or(`slug.eq.${decodedSlug},id.eq.${decodedSlug}`)
+        .maybeSingle();
+
+      if (!error && data) {
+        return rowToJob(data);
+      }
+    } catch (e) {
+      console.error('Supabase getJobBySlug error:', e);
+    }
+  }
+
+  const jobs = getJobsFromStorage();
   return jobs.find(j => j.slug === decodedSlug || j.id === decodedSlug || j.slug === slug);
 }
 
 export async function getJobById(id: string): Promise<Job | undefined> {
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('jobs')
+        .select('*')
+        .eq('id', id)
+        .maybeSingle();
+
+      if (!error && data) {
+        return rowToJob(data);
+      }
+    } catch (e) {
+      console.error('Supabase getJobById error:', e);
+    }
+  }
+
   const jobs = getJobsFromStorage();
   return jobs.find(j => j.id === id);
 }
 
 export async function createJob(newJobData: Partial<Job>): Promise<Job> {
-  const jobs = getJobsFromStorage();
   const id = newJobData.id || `job-${Date.now()}`;
-  
-  // Create clean SEO slug from title or id
   const slug = newJobData.slug || newJobData.title
     ?.toLowerCase()
     .replace(/[^\w\u0621-\u064A0-9]+/g, '-')
@@ -177,27 +305,75 @@ export async function createJob(newJobData: Partial<Job>): Promise<Job> {
     tags: newJobData.tags || []
   };
 
-  const updatedList = [job, ...jobs];
-  saveJobsToStorage(updatedList);
+  // Insert into Supabase if configured
+  if (isSupabaseConfigured && supabase) {
+    try {
+      await supabase.from('jobs').insert(jobToRow(job));
+    } catch (e) {
+      console.error('Supabase createJob error:', e);
+    }
+  }
+
+  // Also update local storage cache
+  const localJobs = getJobsFromStorage();
+  saveJobsToStorage([job, ...localJobs]);
+
   return job;
 }
 
 export async function updateJob(id: string, patch: Partial<Job>): Promise<Job | null> {
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const updates: any = {};
+      if (patch.title) updates.title = patch.title;
+      if (patch.company) updates.company = patch.company;
+      if (patch.companyLogo) updates.company_logo = patch.companyLogo;
+      if (patch.sector) updates.sector = patch.sector;
+      if (patch.sectorLabel) updates.sector_label = patch.sectorLabel;
+      if (patch.gender) updates.gender = patch.gender;
+      if (patch.genderLabel) updates.gender_label = patch.genderLabel;
+      if (patch.qualifications) updates.qualifications = patch.qualifications;
+      if (patch.location) updates.location = patch.location;
+      if (patch.city) updates.city = patch.city;
+      if (patch.status) updates.status = patch.status;
+      if (patch.startDate) updates.start_date = patch.startDate;
+      if (patch.endDate) updates.end_date = patch.endDate;
+      if (patch.experience) updates.experience = patch.experience;
+      if (patch.salary) updates.salary = patch.salary;
+      if (patch.summary) updates.summary = patch.summary;
+      if (patch.description) updates.description = patch.description;
+      if (patch.requirements) updates.requirements = patch.requirements;
+      if (patch.benefits) updates.benefits = patch.benefits;
+      if (patch.applicationUrl) updates.application_url = patch.applicationUrl;
+      if (patch.sourceUrl) updates.source_url = patch.sourceUrl;
+      if (patch.featured !== undefined) updates.featured = patch.featured;
+      if (patch.urgent !== undefined) updates.urgent = patch.urgent;
+
+      await supabase.from('jobs').update(updates).eq('id', id);
+    } catch (e) {
+      console.error('Supabase updateJob error:', e);
+    }
+  }
+
   const jobs = getJobsFromStorage();
   const index = jobs.findIndex(j => j.id === id);
   if (index === -1) return null;
 
-  const updated: Job = {
-    ...jobs[index],
-    ...patch,
-  };
-
+  const updated: Job = { ...jobs[index], ...patch };
   jobs[index] = updated;
   saveJobsToStorage(jobs);
   return updated;
 }
 
 export async function deleteJob(id: string): Promise<boolean> {
+  if (isSupabaseConfigured && supabase) {
+    try {
+      await supabase.from('jobs').delete().eq('id', id);
+    } catch (e) {
+      console.error('Supabase deleteJob error:', e);
+    }
+  }
+
   const jobs = getJobsFromStorage();
   const filtered = jobs.filter(j => j.id !== id);
   if (filtered.length === jobs.length) return false;
@@ -213,10 +389,18 @@ export async function incrementViews(id: string): Promise<void> {
     job.viewsCount = (job.viewsCount || 0) + 1;
     saveJobsToStorage(jobs);
   }
+
+  if (isSupabaseConfigured && supabase) {
+    try {
+      await supabase.rpc('increment_views', { job_id: id });
+    } catch {
+      // Ignore if RPC doesn't exist
+    }
+  }
 }
 
 export async function getJobStats() {
-  const jobs = getJobsFromStorage();
+  const jobs = await getAllJobs();
   const total = jobs.length;
   const active = jobs.filter(j => j.status === 'active' || j.status === 'expiring_soon').length;
   const military = jobs.filter(j => j.sector === 'military').length;
