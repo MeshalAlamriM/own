@@ -308,7 +308,11 @@ export async function createJob(newJobData: Partial<Job>): Promise<Job> {
   // Insert into Supabase if configured
   if (isSupabaseConfigured && supabase) {
     try {
-      await supabase.from('jobs').insert(jobToRow(job));
+      const { error } = await supabase.from('jobs').insert(jobToRow(job));
+      if (error) {
+        console.error('Supabase createJob error:', error);
+        throw new Error(`فشل حفظ الإعلان في قاعدة البيانات: ${error.message}`);
+      }
     } catch (e) {
       console.error('Supabase createJob error:', e);
     }

@@ -256,7 +256,11 @@ export default function AdminPage() {
           body: JSON.stringify(payload),
         });
         const data = await res.json();
-        if (data.success) savedJob = data.data;
+        if (!res.ok || !data.success) {
+          throw new Error(data.error || 'فشل حفظ الإعلان في قاعدة البيانات');
+        }
+        savedJob = data.data;
+
       } else {
         const res = await fetch('/api/jobs', {
           method: 'POST',
@@ -264,7 +268,11 @@ export default function AdminPage() {
           body: JSON.stringify(payload),
         });
         const data = await res.json();
-        if (data.success) savedJob = data.data;
+        if (!res.ok || !data.success) {
+          throw new Error(data.error || 'فشل حفظ الإعلان في قاعدة البيانات');
+        }
+        savedJob = data.data;
+
       }
 
       await loadJobs();
@@ -278,8 +286,9 @@ export default function AdminPage() {
         openBroadcastModal(savedJob);
       }
     } catch (err) {
-      alert('حدث خطأ أثناء حفظ الإعلان');
+      alert(err instanceof Error ? err.message : 'حدث خطأ أثناء حفظ الإعلان');
     }
+
   };
 
   const handleDeleteJob = async (id: string) => {
