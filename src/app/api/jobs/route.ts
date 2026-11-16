@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAllJobs, createJob } from '@/data/store';
 import { JobFilterParams, JobSector, GenderType, JobStatus } from '@/types/job';
+import { isAdminAuthenticated } from '@/lib/admin-auth';
+import { validateJobInput } from '@/lib/job-validation';
 
 export async function GET(request: NextRequest) {
   try {
@@ -31,16 +33,12 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    if (!(await isAdminAuthenticated())) {
+      return NextResponse.json({ success: false, error: 'غير مصرح لك بهذه العملية' }, { status: 401 });
+    }
     const body = await request.json();
-    if (!body || typeof body !== 'object') {
-      return NextResponse.json({ success: false, error: 'بيانات الإعلان غير صالحة' }, { status: 400 });
-    }
-    if (typeof body.title !== 'string' || !body.title.trim() || typeof body.company !== 'string' || !body.company.trim()) {
-      return NextResponse.json({ success: false, error: 'العنوان وجهة العمل مطلوبان' }, { status: 400 });
-    }
-    if (body.title.length > 200 || body.company.length > 200) {
-      return NextResponse.json({ success: false, error: 'العنوان واسم الجهة يجب ألا يتجاوزا 200 حرف' }, { status: 400 });
-    }
+    const validationError = validateJobInput(body);
+    if (validationError) return NextResponse.json({ success: false, error: validationError }, { status: 400 });
 
     const created = await createJob(body);
     return NextResponse.json({ success: true, data: created }, { status: 201 });

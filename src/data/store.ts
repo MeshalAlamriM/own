@@ -146,7 +146,7 @@ export async function getAllJobs(filters?: JobFilterParams): Promise<Job[]> {
 
       const { data, error } = await query.order('publish_date', { ascending: false });
 
-      if (!error && data && data.length > 0) {
+      if (!error && data) {
         let results = data.map(rowToJob);
 
         if (filters?.query) {
@@ -234,8 +234,8 @@ export async function getJobBySlug(slug: string): Promise<Job | undefined> {
         .or(`slug.eq.${decodedSlug},id.eq.${decodedSlug}`)
         .maybeSingle();
 
-      if (!error && data) {
-        return rowToJob(data);
+      if (!error) {
+        return data ? rowToJob(data) : undefined;
       }
     } catch (e) {
       console.error('Supabase getJobBySlug error:', e);
@@ -255,8 +255,8 @@ export async function getJobById(id: string): Promise<Job | undefined> {
         .eq('id', id)
         .maybeSingle();
 
-      if (!error && data) {
-        return rowToJob(data);
+      if (!error) {
+        return data ? rowToJob(data) : undefined;
       }
     } catch (e) {
       console.error('Supabase getJobById error:', e);
@@ -438,9 +438,10 @@ export async function incrementViews(id: string): Promise<void> {
 
   if (isSupabaseConfigured && supabase) {
     try {
-      await supabase.rpc('increment_views', { job_id: id });
-    } catch {
-      // Ignore if RPC doesn't exist
+      const { error } = await supabase.rpc('increment_views', { job_id: id });
+      if (error) console.warn('Supabase increment_views error:', error.message);
+    } catch (error) {
+      console.warn('Supabase increment_views request failed:', error);
     }
   }
 }

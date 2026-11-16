@@ -2,6 +2,7 @@ import { NextResponse, connection } from 'next/server';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { INITIAL_JOBS } from '@/data/initial-jobs';
 import { Job } from '@/types/job';
+import { isAdminAuthenticated } from '@/lib/admin-auth';
 
 function jobToRow(job: Job) {
   return {
@@ -38,6 +39,9 @@ function jobToRow(job: Job) {
 
 export async function GET() {
   await connection();
+  if (!(await isAdminAuthenticated())) {
+    return NextResponse.json({ success: false, error: 'غير مصرح لك بهذه العملية' }, { status: 401 });
+  }
 
   if (!isSupabaseConfigured || !supabase) {
     return NextResponse.json({

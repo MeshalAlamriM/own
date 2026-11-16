@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getJobById } from '@/data/store';
 import { sendTelegramBroadcast } from '@/lib/broadcast';
+import { isAdminAuthenticated } from '@/lib/admin-auth';
 
 export async function POST(request: NextRequest) {
   try {
+    if (!(await isAdminAuthenticated())) {
+      return NextResponse.json({ success: false, error: 'غير مصرح لك بهذه العملية' }, { status: 401 });
+    }
     const body = await request.json();
-    const { jobId, botToken, channelId, siteUrl } = body;
+    const { jobId, siteUrl } = body;
 
     if (!jobId) {
       return NextResponse.json(
@@ -22,9 +26,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Determine botToken and channelId from body or server environment variables
-    const activeToken = botToken || process.env.TELEGRAM_BOT_TOKEN;
-    const activeChannel = channelId || process.env.TELEGRAM_CHANNEL_ID;
+    // Keep Telegram credentials on the server; never accept them from the browser.
+    const activeToken = process.env.TELEGRAM_BOT_TOKEN;
+    const activeChannel = process.env.TELEGRAM_CHANNEL_ID;
 
     if (!activeToken || !activeChannel) {
       return NextResponse.json(

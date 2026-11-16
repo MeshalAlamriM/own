@@ -1,4 +1,4 @@
--- 1. Create the jobs table in Supabase
+-- Saudi Jobs Portal: secure production schema
 CREATE TABLE IF NOT EXISTS public.jobs (
   id TEXT PRIMARY KEY,
   slug TEXT UNIQUE NOT NULL,
@@ -24,30 +24,45 @@ CREATE TABLE IF NOT EXISTS public.jobs (
   benefits JSONB NOT NULL DEFAULT '[]'::jsonb,
   application_url TEXT NOT NULL,
   source_url TEXT,
-  featured BOOLEAN DEFAULT FALSE,
-  urgent BOOLEAN DEFAULT FALSE,
-  views_count INTEGER DEFAULT 1,
-  tags JSONB DEFAULT '[]'::jsonb,
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  featured BOOLEAN NOT NULL DEFAULT FALSE,
+  urgent BOOLEAN NOT NULL DEFAULT FALSE,
+  views_count INTEGER NOT NULL DEFAULT 1,
+  tags JSONB NOT NULL DEFAULT '[]'::jsonb,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- 2. Enable Row Level Security (RLS)
 ALTER TABLE public.jobs ENABLE ROW LEVEL SECURITY;
 
--- 3. Allow public read access to all visitors
-CREATE POLICY "Public jobs are viewable by everyone" 
-ON public.jobs FOR SELECT 
-USING (true);
+DROP POLICY IF EXISTS "Public jobs are viewable by everyone" ON public.jobs;
+DROP POLICY IF EXISTS "Enable insert for all" ON public.jobs;
+DROP POLICY IF EXISTS "Enable update for all" ON public.jobs;
+DROP POLICY IF EXISTS "Enable delete for all" ON public.jobs;
+DROP POLICY IF EXISTS "Public jobs read" ON public.jobs;
 
--- 4. Allow insert, update, and delete access
-CREATE POLICY "Enable insert for all" 
-ON public.jobs FOR INSERT 
-WITH CHECK (true);
+CREATE POLICY "Public jobs read"
+  ON public.jobs FOR SELECT
+  TO anon, authenticated
+  USING (true);
 
-CREATE POLICY "Enable update for all" 
-ON public.jobs FOR UPDATE 
-USING (true);
+-- The application API uses SUPABASE_SERVICE_ROLE_KEY on the server.
+-- service_role bypasses RLS; no public write policy is intentional.
 
-CREATE POLICY "Enable delete for all" 
-ON public.jobs FOR DELETE 
-USING (true);
+CREATE INDEX IF NOT EXISTS jobs_publish_date_idx ON public.jobs (publish_date DESC);
+CREATE INDEX IF NOT EXISTS jobs_status_idx ON public.jobs (status);
+CREATE INDEX IF NOT EXISTS jobs_sector_idx ON public.jobs (sector);
+CREATE INDEX IF NOT EXISTS jobs_city_idx ON public.jobs (city);
+CREATE INDEX IF NOT EXISTS jobs_featured_idx ON public.jobs (featured) WHERE featured = TRUE;
+
+CREATE OR REPLACE FUNCTION public.increment_views(job_id TEXT)
+RETURNS VOID
+LANGUAGE SQL
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  UPDATE public.jobs
+  SET views_count = COALESCE(views_count, 0) + 1
+  WHERE id = job_id;
+$$;
+
+REVOKE ALL ON FUNCTION public.increment_views(TEXT) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.increment_views(TEXT) TO service_role;

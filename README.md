@@ -25,7 +25,8 @@
 2. أرسل الأمر `/newbot` ثم اختر اسماً ومعرفاً للبوت (مثال: `MyJobsNotifierBot`).
 3. انسخ الـ **API Token** الذي يعطيك إياه.
 4. اذهب لقناتك على التيليجرام وأضف البوت كـ **مشرف (Administrator)** مع صلاحية نشر الرسائل (Post Messages).
-5. ادخل للوحة التحكم: [http://localhost:3000/admin](http://localhost:3000/admin) > انقر على **«إعدادات قنوات النشر»** وضع التوكن ومعرف قناتك (مثال: `@my_channel_name`) واضغط **حفظ**.
+5. أضف `TELEGRAM_BOT_TOKEN` و`TELEGRAM_CHANNEL_ID` إلى متغيرات البيئة في Vercel. لا تضع التوكن في المتصفح أو داخل Git.
+6. ادخل للوحة التحكم: [http://localhost:3000/admin](http://localhost:3000/admin) > أدخل معرف القناة فقط إذا أردت حفظه محليًا للعرض؛ التوكن يقرأه الخادم من Vercel.
 
 ---
 
@@ -67,4 +68,18 @@ npm run build
 
 ## 🔒 الدخول للوحة التحكم
 - الرابط: `http://localhost:3000/admin`
-- رمز الدخول: `2026` أو `admin`
+- كلمة المرور تحددها أنت في متغير `ADMIN_PASSWORD` داخل Vercel.
+- أضف أيضًا `ADMIN_SESSION_SECRET` بقيمة عشوائية مختلفة لتوقيع جلسة HttpOnly.
+- عمليات الإضافة والتعديل والحذف والنشر محمية من الخادم، وليست معتمدة على `localStorage`.
+
+## 🔐 متغيرات الإنتاج المطلوبة
+
+انسخ `.env.example` إلى إعدادات Vercel وأضف القيم الحقيقية:
+
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY` — مطلوب لعمليات الكتابة من الخادم، ولا يبدأ بـ `NEXT_PUBLIC_`.
+- `ADMIN_PASSWORD`
+- `ADMIN_SESSION_SECRET`
+- `TELEGRAM_BOT_TOKEN` و`TELEGRAM_CHANNEL_ID` عند استخدام النشر الآلي.
+
+بعد تحديث `supabase-schema.sql`، نفّذ الملف في Supabase SQL Editor لتفعيل القراءة العامة فقط، وإغلاق الكتابة العامة، وإضافة الفهارس ودالة عداد المشاهدات الذرية.

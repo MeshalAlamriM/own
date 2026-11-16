@@ -56,7 +56,6 @@ export default function AdminPage() {
 
   // Channel Settings State
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
-  const [telegramBotToken, setTelegramBotToken] = useState('');
   const [telegramChannelId, setTelegramChannelId] = useState('');
   const [autoPublishTelegram, setAutoPublishTelegram] = useState(false);
 
@@ -123,39 +122,38 @@ export default function AdminPage() {
   };
 
   useEffect(() => {
-    // Check if previously logged in
-    const auth = localStorage.getItem('admin_auth');
-    if (auth === 'true') {
-      setIsAuthenticated(true);
-    }
     // Load Telegram Settings from local storage
-    const savedToken = localStorage.getItem('tg_bot_token') || '';
     const savedChannel = localStorage.getItem('tg_channel_id') || '';
-    setTelegramBotToken(savedToken);
     setTelegramChannelId(savedChannel);
-
+    fetch('/api/admin/session')
+      .then(res => res.json())
+      .then(data => setIsAuthenticated(Boolean(data.authenticated)))
+      .catch(() => setIsAuthenticated(false));
     loadJobs();
   }, []);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (pin === '2026' || pin === '1234' || pin === 'admin') {
+    fetch('/api/admin/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: pin }),
+    }).then(async (res) => {
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success) throw new Error(data.error || 'رمز الدخول غير صحيح');
       setIsAuthenticated(true);
-      localStorage.setItem('admin_auth', 'true');
+      setPin('');
       setPinError(false);
-    } else {
-      setPinError(true);
-    }
+    }).catch(() => setPinError(true));
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await fetch('/api/admin/session', { method: 'DELETE' });
     setIsAuthenticated(false);
-    localStorage.removeItem('admin_auth');
   };
 
   const saveSettings = (e: React.FormEvent) => {
     e.preventDefault();
-    localStorage.setItem('tg_bot_token', telegramBotToken.trim());
     localStorage.setItem('tg_channel_id', telegramChannelId.trim());
     setSettingsModalOpen(false);
     alert('تم حفظ إعدادات التيليجرام بنجاح! 💾');
@@ -279,7 +277,7 @@ export default function AdminPage() {
       setModalOpen(false);
 
       // Auto-publish to Telegram if option checked and settings present
-      if (autoPublishTelegram && savedJob && telegramBotToken && telegramChannelId) {
+      if (autoPublishTelegram && savedJob) {
         await executeTelegramPublish(savedJob);
       } else if (savedJob) {
         // Open broadcast modal to offer instant broadcast
@@ -314,10 +312,10 @@ export default function AdminPage() {
 
   // Direct Telegram Dispatch
   const executeTelegramPublish = async (job: Job) => {
-    if (!telegramBotToken || !telegramChannelId) {
+    if (!telegramChannelId) {
       setPublishResult({
         type: 'error',
-        message: 'يرجى ضبط توكن البوت ومعرف القناة أولاً عبر زر "إعدادات القنوات".',
+        message: 'يرجى إدخال معرف القناة. يجب ضبط توكن البوت في متغيرات Vercel.',
       });
       return;
     }
@@ -331,8 +329,6 @@ export default function AdminPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           jobId: job.id,
-          botToken: telegramBotToken,
-          channelId: telegramChannelId,
           siteUrl: typeof window !== 'undefined' ? window.location.origin : 'https://wadhaef-alyoum.sa',
         }),
       });
@@ -396,12 +392,10 @@ export default function AdminPage() {
               type="password"
               value={pin}
               onChange={(e) => setPin(e.target.value)}
-              placeholder="hi welocome"
+              placeholder="أدخل كلمة مرور الإدارة"
               className="w-full text-center text-lg font-bold tracking-widest py-3 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
             />
-            {pinError && (
-              <p className="text-xs text-rose-600 font-semibold">heelo</p>
-            )}
+            {pinError && <p className="text-xs text-rose-600 font-semibold">رمز الدخول غير صحيح أو لم يتم إعداد كلمة مرور الإدارة.</p>}
             <button
               type="submit"
               className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl transition shadow-xs"
@@ -410,9 +404,7 @@ export default function AdminPage() {
             </button>
           </form>
 
-          <p className="text-[11px] text-gray-400">
-            رمز المرور الافتراضي هو: <strong className="text-gray-600">2026</strong>
-          </p>
+          <p className="text-[11px] text-gray-400">يتم تحديد كلمة المرور من متغير <code>ADMIN_PASSWORD</code> في إعدادات الخادم.</p>
         </div>
       </div>
     );
@@ -789,22 +781,9 @@ export default function AdminPage() {
               </div>
 
               <form onSubmit={saveSettings} className="space-y-4 text-xs">
-                {/* Bot Token */}
-                <div>
-                  <label className="block font-bold text-gray-700 mb-1">
-                    توكن بوت التيليجرام (Telegram Bot Token) *
-                  </label>
-                  <input
-                    type="password"
-                    required
-                    value={telegramBotToken}
-                    onChange={(e) => setTelegramBotToken(e.target.value)}
-                    placeholder="مثال: 7123456789:AAHk... من @BotFather"
-                    className="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-xl font-mono text-xs focus:ring-2 focus:ring-sky-500 focus:bg-white"
-                  />
-                  <p className="text-[10px] text-gray-400 mt-1">
-                    احصل عليه مجاناً عبر فتح محادثة مع <a href="https://t.me/BotFather" target="_blank" className="text-sky-600 font-bold underline">@BotFather</a> ثم إرسال الأمر <code>/newbot</code>
-                  </p>
+                <div className="rounded-xl bg-amber-50 border border-amber-200 p-3 text-[10px] text-amber-800">
+                  لأمان الموقع، يتم حفظ توكن البوت في متغير <code>TELEGRAM_BOT_TOKEN</code> على Vercel فقط، ولا يتم تخزينه في المتصفح.
+                  احصل عليه من <a href="https://t.me/BotFather" target="_blank" rel="noreferrer" className="font-bold underline">@BotFather</a>.
                 </div>
 
                 {/* Channel ID */}

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getJobById, updateJob, deleteJob, incrementViews } from '@/data/store';
+import { isAdminAuthenticated } from '@/lib/admin-auth';
+import { validateJobInput } from '@/lib/job-validation';
 
 export async function GET(
   request: NextRequest,
@@ -27,8 +29,15 @@ export async function PUT(
   context: { params: Promise<{ id: string }> }
 ) {
   try {
+    if (!(await isAdminAuthenticated())) {
+      return NextResponse.json({ success: false, error: 'غير مصرح لك بهذه العملية' }, { status: 401 });
+    }
     const { id } = await context.params;
     const body = await request.json();
+    const validationError = validateJobInput(body, true);
+    if (validationError) {
+      return NextResponse.json({ success: false, error: validationError }, { status: 400 });
+    }
     const updated = await updateJob(id, body);
     if (!updated) {
       return NextResponse.json({ success: false, error: 'الوظيفة غير موجودة' }, { status: 404 });
@@ -48,6 +57,9 @@ export async function DELETE(
   context: { params: Promise<{ id: string }> }
 ) {
   try {
+    if (!(await isAdminAuthenticated())) {
+      return NextResponse.json({ success: false, error: 'غير مصرح لك بهذه العملية' }, { status: 401 });
+    }
     const { id } = await context.params;
     const deleted = await deleteJob(id);
     if (!deleted) {
