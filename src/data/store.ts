@@ -315,6 +315,9 @@ export async function createJob(newJobData: Partial<Job>): Promise<Job> {
       }
     } catch (e) {
       console.error('Supabase createJob error:', e);
+      throw e instanceof Error
+        ? e
+        : new Error('فشل حفظ الإعلان في قاعدة البيانات');
     }
   }
 
@@ -328,7 +331,7 @@ export async function createJob(newJobData: Partial<Job>): Promise<Job> {
 export async function updateJob(id: string, patch: Partial<Job>): Promise<Job | null> {
   if (isSupabaseConfigured && supabase) {
     try {
-      const updates: any = {};
+      const updates: Record<string, unknown> = {};
       if (patch.title) updates.title = patch.title;
       if (patch.company) updates.company = patch.company;
       if (patch.companyLogo) updates.company_logo = patch.companyLogo;
@@ -353,9 +356,30 @@ export async function updateJob(id: string, patch: Partial<Job>): Promise<Job | 
       if (patch.featured !== undefined) updates.featured = patch.featured;
       if (patch.urgent !== undefined) updates.urgent = patch.urgent;
 
-      await supabase.from('jobs').update(updates).eq('id', id);
+      const { data, error } = await supabase
+        .from('jobs')
+        .update(updates)
+        .eq('id', id)
+        .select('*')
+        .maybeSingle();
+      if (error) {
+        throw new Error(`فشل تحديث الإعلان في قاعدة البيانات: ${error.message}`);
+      }
+      if (!data) return null;
+
+      const updatedFromDatabase = rowToJob(data);
+      const localJobs = getJobsFromStorage();
+      const localIndex = localJobs.findIndex(j => j.id === id);
+      if (localIndex !== -1) {
+        localJobs[localIndex] = updatedFromDatabase;
+        saveJobsToStorage(localJobs);
+      }
+      return updatedFromDatabase;
     } catch (e) {
       console.error('Supabase updateJob error:', e);
+      throw e instanceof Error
+        ? e
+        : new Error('فشل تحديث الإعلان في قاعدة البيانات');
     }
   }
 
@@ -372,9 +396,27 @@ export async function updateJob(id: string, patch: Partial<Job>): Promise<Job | 
 export async function deleteJob(id: string): Promise<boolean> {
   if (isSupabaseConfigured && supabase) {
     try {
-      await supabase.from('jobs').delete().eq('id', id);
+      const { data, error } = await supabase
+        .from('jobs')
+        .delete()
+        .eq('id', id)
+        .select('id');
+      if (error) {
+        throw new Error(`فشل حذف الإعلان من قاعدة البيانات: ${error.message}`);
+      }
+      if (!data || data.length === 0) return false;
+
+      const localJobs = getJobsFromStorage();
+      const filteredLocalJobs = localJobs.filter(j => j.id !== id);
+      if (filteredLocalJobs.length !== localJobs.length) {
+        saveJobsToStorage(filteredLocalJobs);
+      }
+      return true;
     } catch (e) {
       console.error('Supabase deleteJob error:', e);
+      throw e instanceof Error
+        ? e
+        : new Error('فشل حذف الإعلان من قاعدة البيانات');
     }
   }
 

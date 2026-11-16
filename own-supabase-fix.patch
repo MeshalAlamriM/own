@@ -1,0 +1,105 @@
+[1mdiff --git a/src/app/admin/page.tsx b/src/app/admin/page.tsx[m
+[1mindex b4ceb53..9e184a0 100644[m
+[1m--- a/src/app/admin/page.tsx[m
+[1m+++ b/src/app/admin/page.tsx[m
+[36m@@ -256,7 +256,10 @@[m [mexport default function AdminPage() {[m
+           body: JSON.stringify(payload),[m
+         });[m
+         const data = await res.json();[m
+[31m-        if (data.success) savedJob = data.data;[m
+[32m+[m[32m        if (!res.ok || !data.success) {[m
+[32m+[m[32m          throw new Error(data.error || 'فشل تحديث الإعلان في قاعدة البيانات');[m
+[32m+[m[32m        }[m
+[32m+[m[32m        savedJob = data.data;[m
+       } else {[m
+         const res = await fetch('/api/jobs', {[m
+           method: 'POST',[m
+[36m@@ -264,7 +267,10 @@[m [mexport default function AdminPage() {[m
+           body: JSON.stringify(payload),[m
+         });[m
+         const data = await res.json();[m
+[31m-        if (data.success) savedJob = data.data;[m
+[32m+[m[32m        if (!res.ok || !data.success) {[m
+[32m+[m[32m          throw new Error(data.error || 'فشل حفظ الإعلان في قاعدة البيانات');[m
+[32m+[m[32m        }[m
+[32m+[m[32m        savedJob = data.data;[m
+       }[m
+ [m
+       await loadJobs();[m
+[36m@@ -278,7 +284,7 @@[m [mexport default function AdminPage() {[m
+         openBroadcastModal(savedJob);[m
+       }[m
+     } catch (err) {[m
+[31m-      alert('حدث خطأ أثناء حفظ الإعلان');[m
+[32m+[m[32m      alert(err instanceof Error ? err.message : 'حدث خطأ أثناء حفظ الإعلان');[m
+     }[m
+   };[m
+ [m
+[1mdiff --git a/src/data/store.ts b/src/data/store.ts[m
+[1mindex c7f9d14..c6756df 100644[m
+[1m--- a/src/data/store.ts[m
+[1m+++ b/src/data/store.ts[m
+[36m@@ -146,7 +146,7 @@[m [mexport async function getAllJobs(filters?: JobFilterParams): Promise<Job[]> {[m
+ [m
+       const { data, error } = await query.order('publish_date', { ascending: false });[m
+ [m
+[31m-      if (!error && data && data.length > 0) {[m
+[32m+[m[32m      if (!error && data) {[m
+         let results = data.map(rowToJob);[m
+ [m
+         if (filters?.query) {[m
+[36m@@ -308,13 +308,20 @@[m [mexport async function createJob(newJobData: Partial<Job>): Promise<Job> {[m
+   // Insert into Supabase if configured[m
+   if (isSupabaseConfigured && supabase) {[m
+     try {[m
+[31m-      await supabase.from('jobs').insert(jobToRow(job));[m
+[32m+[m[32m      const { error } = await supabase.from('jobs').insert(jobToRow(job));[m
+[32m+[m[32m      if (error) {[m
+[32m+[m[32m        console.error('Supabase createJob error:', error);[m
+[32m+[m[32m        throw new Error(`فشل حفظ الإعلان في قاعدة البيانات: ${error.message}`);[m
+[32m+[m[32m      }[m
+[32m+[m
+[32m+[m[32m      return job;[m
+     } catch (e) {[m
+       console.error('Supabase createJob error:', e);[m
+[32m+[m[32m      throw e instanceof Error ? e : new Error('فشل حفظ الإعلان في قاعدة البيانات');[m
+     }[m
+   }[m
+ [m
+[31m-  // Also update local storage cache[m
+[32m+[m[32m  // Use local storage only when Supabase is intentionally not configured (local development).[m
+   const localJobs = getJobsFromStorage();[m
+   saveJobsToStorage([job, ...localJobs]);[m
+ [m
+[36m@@ -349,9 +356,14 @@[m [mexport async function updateJob(id: string, patch: Partial<Job>): Promise<Job |[m
+       if (patch.featured !== undefined) updates.featured = patch.featured;[m
+       if (patch.urgent !== undefined) updates.urgent = patch.urgent;[m
+ [m
+[31m-      await supabase.from('jobs').update(updates).eq('id', id);[m
+[32m+[m[32m      const { error } = await supabase.from('jobs').update(updates).eq('id', id);[m
+[32m+[m[32m      if (error) {[m
+[32m+[m[32m        console.error('Supabase updateJob error:', error);[m
+[32m+[m[32m        throw new Error(`فشل تحديث الإعلان في قاعدة البيانات: ${error.message}`);[m
+[32m+[m[32m      }[m
+     } catch (e) {[m
+       console.error('Supabase updateJob error:', e);[m
+[32m+[m[32m      throw e instanceof Error ? e : new Error('فشل تحديث الإعلان في قاعدة البيانات');[m
+     }[m
+   }[m
+ [m
+[36m@@ -368,9 +380,14 @@[m [mexport async function updateJob(id: string, patch: Partial<Job>): Promise<Job |[m
+ export async function deleteJob(id: string): Promise<boolean> {[m
+   if (isSupabaseConfigured && supabase) {[m
+     try {[m
+[31m-      await supabase.from('jobs').delete().eq('id', id);[m
+[32m+[m[32m      const { error } = await supabase.from('jobs').delete().eq('id', id);[m
+[32m+[m[32m      if (error) {[m
+[32m+[m[32m        console.error('Supabase deleteJob error:', error);[m
+[32m+[m[32m        throw new Error(`فشل حذف الإعلان من قاعدة البيانات: ${error.message}`);[m
+[32m+[m[32m      }[m
+     } catch (e) {[m
+       console.error('Supabase deleteJob error:', e);[m
+[32m+[m[32m      throw e instanceof Error ? e : new Error('فشل حذف الإعلان من قاعدة البيانات');[m
+     }[m
+   }[m
+ [m

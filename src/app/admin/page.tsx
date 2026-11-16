@@ -295,11 +295,13 @@ export default function AdminPage() {
     if (!confirm('هل أنت متأكد من رغبتك في حذف هذا الإعلان الوظيفي نهائياً؟')) return;
     try {
       const res = await fetch(`/api/jobs/${id}`, { method: 'DELETE' });
-      if (res.ok) {
-        setJobs(jobs.filter(j => j.id !== id));
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'فشل حذف الإعلان من قاعدة البيانات');
       }
+      setJobs(jobs.filter(j => j.id !== id));
     } catch (err) {
-      alert('حدث خطأ أثناء الحذف');
+      alert(err instanceof Error ? err.message : 'حدث خطأ أثناء الحذف');
     }
   };
 

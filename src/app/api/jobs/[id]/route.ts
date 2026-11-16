@@ -36,7 +36,10 @@ export async function PUT(
     return NextResponse.json({ success: true, data: updated });
   } catch (error) {
     console.error('API Error updating job:', error);
-    return NextResponse.json({ success: false, error: 'خطأ في تحديث الوظيفة' }, { status: 500 });
+    return NextResponse.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'خطأ في تحديث الوظيفة'
+    }, { status: 500 });
   }
 }
 
@@ -53,6 +56,9 @@ export async function DELETE(
     return NextResponse.json({ success: true, message: 'تم حذف الإعلان بنجاح' });
   } catch (error) {
     console.error('API Error deleting job:', error);
-    return NextResponse.json({ success: false, error: 'خطأ في حذف الوظيفة' }, { status: 500 });
+    return NextResponse.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'خطأ في حذف الوظيفة'
+    }, { status: 500 });
   }
 }

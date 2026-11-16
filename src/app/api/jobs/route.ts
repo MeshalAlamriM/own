@@ -32,14 +32,23 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    if (!body.title || !body.company) {
+    if (!body || typeof body !== 'object') {
+      return NextResponse.json({ success: false, error: 'بيانات الإعلان غير صالحة' }, { status: 400 });
+    }
+    if (typeof body.title !== 'string' || !body.title.trim() || typeof body.company !== 'string' || !body.company.trim()) {
       return NextResponse.json({ success: false, error: 'العنوان وجهة العمل مطلوبان' }, { status: 400 });
+    }
+    if (body.title.length > 200 || body.company.length > 200) {
+      return NextResponse.json({ success: false, error: 'العنوان واسم الجهة يجب ألا يتجاوزا 200 حرف' }, { status: 400 });
     }
 
     const created = await createJob(body);
     return NextResponse.json({ success: true, data: created }, { status: 201 });
   } catch (error) {
     console.error('API Error creating job:', error);
-    return NextResponse.json({ success: false, error: 'حدث خطأ أثناء إنشاء الوظيفة' }, { status: 500 });
+    return NextResponse.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'حدث خطأ أثناء إنشاء الوظيفة'
+    }, { status: 500 });
   }
 }
