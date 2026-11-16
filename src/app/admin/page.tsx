@@ -312,14 +312,6 @@ export default function AdminPage() {
 
   // Direct Telegram Dispatch
   const executeTelegramPublish = async (job: Job) => {
-    if (!telegramChannelId) {
-      setPublishResult({
-        type: 'error',
-        message: 'يرجى إدخال معرف القناة. يجب ضبط توكن البوت في متغيرات Vercel.',
-      });
-      return;
-    }
-
     setPublishingTelegram(true);
     setPublishResult({ type: 'idle', message: '' });
 

@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: 'يرجى إدخال توكن البوت (Bot Token) ومعرف القناة (Channel ID) في إعدادات النشر أو كمتغيرات بيئة.',
+          error: 'إعدادات Telegram غير مكتملة في Vercel. أضف TELEGRAM_BOT_TOKEN و TELEGRAM_CHANNEL_ID ثم نفّذ Redeploy.',
         },
         { status: 400 }
       );
