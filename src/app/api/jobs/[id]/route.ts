@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getJobById, updateJob, deleteJob, incrementViews } from '@/data/store';
+import { getJobById, updateJob, deleteJob } from '@/data/store';
 import { isAdminAuthenticated } from '@/lib/admin-auth';
 import { validateJobInput } from '@/lib/job-validation';
 import { recordAuditLog } from '@/lib/audit';
@@ -15,9 +15,6 @@ export async function GET(
     if (!job) {
       return NextResponse.json({ success: false, error: 'الوظيفة غير موجودة' }, { status: 404 });
     }
-
-    // Increment view count
-    await incrementViews(id);
 
     return NextResponse.json({ success: true, data: job });
   } catch (error) {

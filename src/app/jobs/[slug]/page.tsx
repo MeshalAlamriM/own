@@ -1,7 +1,7 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { getJobBySlug, getAllJobs, incrementViews } from '@/data/store';
+import { getJobBySlug, getAllJobs } from '@/data/store';
 import SchemaJobPosting from '@/components/SchemaJobPosting';
 import ShareButtons from '@/components/ShareButtons';
 import BookmarkButton from '@/components/BookmarkButton';
@@ -9,6 +9,7 @@ import JobCountdown from '@/components/JobCountdown';
 import JobCard from '@/components/JobCard';
 import TelegramBanner from '@/components/TelegramBanner';
 import AdBanner from '@/components/AdBanner';
+import ViewCounter from '@/components/ViewCounter';
 import { 
   Building2, 
   MapPin, 
@@ -22,7 +23,6 @@ import {
   AlertTriangle, 
   CheckCircle2, 
   ChevronLeft,
-  Eye,
   Clock,
   Sparkles
 } from 'lucide-react';
@@ -30,6 +30,8 @@ import {
 interface JobPageProps {
   params: Promise<{ slug: string }>;
 }
+
+export const dynamic = 'force-dynamic';
 
 export async function generateStaticParams() {
   const jobs = await getAllJobs();
@@ -97,9 +99,6 @@ export default async function JobDetailPage({ params }: JobPageProps) {
     notFound();
   }
 
-  // Increment views
-  await incrementViews(job.id);
-
   // Fetch related jobs (same sector, different id)
   const allJobs = await getAllJobs();
   const relatedJobs = allJobs
@@ -149,10 +148,7 @@ export default async function JobDetailPage({ params }: JobPageProps) {
                     نُشر في: {job.publishDate.split('T')[0]}
                   </span>
                   <span>•</span>
-                  <span className="flex items-center gap-1">
-                    <Eye className="w-3.5 h-3.5" />
-                    {job.viewsCount + 1} مشاهدة
-                  </span>
+                  <ViewCounter jobId={job.id} initialViews={job.viewsCount} />
                   <BookmarkButton jobId={job.id} showText={true} />
                 </div>
               </div>
