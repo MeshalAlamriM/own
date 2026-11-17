@@ -1,6 +1,4 @@
-'use client';
-
-import { useEffect } from 'react';
+import Script from 'next/script';
 
 interface AdBannerProps {
   slotId?: string;
@@ -10,48 +8,45 @@ interface AdBannerProps {
 }
 
 export default function AdBanner({
-  slotId = '1234567890',
+  slotId,
   format = 'auto',
   className = '',
-  label = 'إعلان تجاري مدعوم'
+  label = 'إعلان',
 }: AdBannerProps) {
-  useEffect(() => {
-    try {
-      if (typeof window !== 'undefined') {
-        ((window as any).adsbygoogle = (window as any).adsbygoogle || []).push({});
-      }
-    } catch (err) {
-      // Ignore if AdSense script is blocked or not yet active
-    }
-  }, []);
-
   const publisherId = process.env.NEXT_PUBLIC_ADSENSE_ID;
+  const isPublisherIdValid = Boolean(publisherId && /^ca-pub-\d+$/.test(publisherId));
+  const isSlotIdValid = Boolean(slotId && /^\d+$/.test(slotId));
 
-  // If live publisher ID exists, render actual Google AdSense Ins Tag
-  if (publisherId) {
+  // No fake publisher or ad-unit IDs: show a non-ad placeholder until configured.
+  if (!isPublisherIdValid || !isSlotIdValid) {
     return (
-      <div className={`my-6 text-center overflow-hidden ${className}`}>
-        <span className="text-[11px] text-ink-400 block mb-1.5 font-medium">{label}</span>
-        <ins
-          className="adsbygoogle"
-          style={{ display: 'block' }}
-          data-ad-client={publisherId}
-          data-ad-slot={slotId}
-          data-ad-format={format}
-          data-full-width-responsive="true"
-        />
+      <div className={`my-6 mx-auto max-w-4xl rounded-2xl border border-dashed border-ink-200 bg-paper-2/60 p-4 text-center ${className}`}>
+        <span className="text-[11px] text-ink-400">{label}</span>
       </div>
     );
   }
 
-  // Placeholder preview shown during review/before AdSense approval
   return (
-    <div className={`my-6 mx-auto max-w-4xl overflow-hidden rounded-2xl border border-dashed border-ink-200 bg-paper-2/60 p-4 text-center ${className}`}>
-      <span className="text-[11px] text-ink-400 block mb-1 font-medium">{label}</span>
-      <div className="py-5 flex flex-col items-center justify-center text-ink-400 text-xs">
-        <span className="font-semibold text-ink-600 mb-0.5">مساحة إعلانية (Google AdSense)</span>
-        <span className="text-[11px] text-ink-400">ستظهر الإعلانات هنا تلقائياً فور ربط معرف الناشر</span>
-      </div>
+    <div className={`my-6 text-center overflow-hidden ${className}`}>
+      <Script
+        id="google-adsense"
+        async
+        strategy="afterInteractive"
+        crossOrigin="anonymous"
+        src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${publisherId}`}
+      />
+      <span className="text-[11px] text-ink-400 block mb-1.5 font-medium">{label}</span>
+      <ins
+        className="adsbygoogle"
+        style={{ display: 'block' }}
+        data-ad-client={publisherId}
+        data-ad-slot={slotId}
+        data-ad-format={format}
+        data-full-width-responsive="true"
+      />
+      <Script id={`adsense-init-${slotId}`} strategy="afterInteractive">
+        {`(window.adsbygoogle = window.adsbygoogle || []).push({});`}
+      </Script>
     </div>
   );
 }
