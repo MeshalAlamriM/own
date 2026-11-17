@@ -9,10 +9,27 @@
   }
 
   body {
-    background-color: #f8fafc;
+    background:
+      radial-gradient(circle at 8% 4%, rgba(16, 185, 129, 0.08), transparent 24rem),
+      radial-gradient(circle at 92% 20%, rgba(14, 165, 233, 0.05), transparent 22rem),
+      #f6f9f8;
     color: #0f172a;
     min-height: 100vh;
     overflow-x: hidden;
+  }
+
+  ::selection {
+    background: #a7f3d0;
+    color: #064e3b;
+  }
+
+  button, a, input, select, textarea {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  :focus-visible {
+    outline: 3px solid rgba(16, 185, 129, 0.45);
+    outline-offset: 3px;
   }
 }
 
@@ -48,4 +65,12 @@
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+.scrollbar-none {
+  scrollbar-width: none;
+}
+
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
 }

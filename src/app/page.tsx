@@ -25,15 +25,15 @@ export default async function HomePage() {
   const resultsJobs = jobs.filter((j) => j.sector === 'results').slice(0, 4);
 
   return (
-    <div className="space-y-12 pb-16">
+    <div className="space-y-16 pb-20">
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-emerald-900 via-slate-900 to-slate-950 text-white pt-16 pb-20 px-4 sm:px-6 lg:px-8 shadow-inner">
+      <section className="relative isolate overflow-hidden bg-gradient-to-br from-emerald-950 via-slate-950 to-slate-900 text-white pt-14 sm:pt-20 pb-16 sm:pb-24 px-4 sm:px-6 lg:px-8 shadow-[inset_0_-30px_80px_rgba(2,44,34,0.28)]">
         {/* Decorative Grid and glows */}
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#1e293b15_1px,transparent_1px),linear-gradient(to_bottom,#1e293b15_1px,transparent_1px)] bg-[size:3rem_3rem] pointer-events-none"></div>
         <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
         <div className="absolute bottom-10 left-10 w-80 h-80 bg-teal-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
-        <div className="relative max-w-5xl mx-auto text-center space-y-6">
+        <div className="relative max-w-6xl mx-auto text-center space-y-7">
           {/* Trust badge */}
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-semibold shadow-xs">
             <Sparkles className="w-4 h-4 text-emerald-400" />
@@ -52,30 +52,30 @@ export default async function HomePage() {
           </p>
 
           {/* Quick Stats Grid */}
-          <div className="pt-4 grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-3xl mx-auto text-right">
-            <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-3.5">
+          <div className="pt-3 grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-4xl mx-auto text-right">
+            <div className="bg-white/[0.07] backdrop-blur-md border border-white/10 rounded-2xl p-4 shadow-lg shadow-black/10">
               <span className="block text-2xl font-black text-emerald-400">{stats.total}+</span>
               <span className="text-xs text-slate-300">وظيفة وإعلان نشط</span>
             </div>
-            <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-3.5">
+            <div className="bg-white/[0.07] backdrop-blur-md border border-white/10 rounded-2xl p-4 shadow-lg shadow-black/10">
               <span className="block text-2xl font-black text-amber-400">{stats.military}+</span>
               <span className="text-xs text-slate-300">قطاعات عسكرية</span>
             </div>
-            <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-3.5">
+            <div className="bg-white/[0.07] backdrop-blur-md border border-white/10 rounded-2xl p-4 shadow-lg shadow-black/10">
               <span className="block text-2xl font-black text-teal-400">{stats.training}+</span>
               <span className="text-xs text-slate-300">برامج تدريب وتأهيل</span>
             </div>
-            <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-3.5">
+            <div className="bg-white/[0.07] backdrop-blur-md border border-white/10 rounded-2xl p-4 shadow-lg shadow-black/10">
               <span className="block text-2xl font-black text-sky-400">100%</span>
               <span className="text-xs text-slate-300">روابط تقديم مباشرة</span>
             </div>
           </div>
 
           {/* Category Quick Navigation Cards */}
-          <div className="pt-8 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          <div className="pt-5 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             <Link
               href="/jobs?sector=government"
-              className="group flex flex-col items-center justify-center p-3.5 rounded-2xl bg-white/5 hover:bg-emerald-600/20 border border-white/10 hover:border-emerald-400/50 transition-all text-center"
+              className="group flex min-h-[102px] flex-col items-center justify-center p-3.5 rounded-2xl bg-white/[0.06] shadow-lg shadow-black/5 hover:bg-emerald-600/20 border border-white/10 hover:border-emerald-400/50 transition-all text-center"
             >
               <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center text-emerald-400 group-hover:scale-110 transition-transform mb-2">
                 <ShieldCheck className="w-5 h-5" />
@@ -85,7 +85,7 @@ export default async function HomePage() {
 
             <Link
               href="/jobs?sector=military"
-              className="group flex flex-col items-center justify-center p-3.5 rounded-2xl bg-white/5 hover:bg-amber-600/20 border border-white/10 hover:border-amber-400/50 transition-all text-center"
+              className="group flex min-h-[102px] flex-col items-center justify-center p-3.5 rounded-2xl bg-white/[0.06] shadow-lg shadow-black/5 hover:bg-amber-600/20 border border-white/10 hover:border-amber-400/50 transition-all text-center"
             >
               <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center text-amber-400 group-hover:scale-110 transition-transform mb-2">
                 <Flame className="w-5 h-5" />
@@ -95,7 +95,7 @@ export default async function HomePage() {
 
             <Link
               href="/jobs?sector=corporate"
-              className="group flex flex-col items-center justify-center p-3.5 rounded-2xl bg-white/5 hover:bg-blue-600/20 border border-white/10 hover:border-blue-400/50 transition-all text-center"
+              className="group flex min-h-[102px] flex-col items-center justify-center p-3.5 rounded-2xl bg-white/[0.06] shadow-lg shadow-black/5 hover:bg-blue-600/20 border border-white/10 hover:border-blue-400/50 transition-all text-center"
             >
               <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center text-blue-400 group-hover:scale-110 transition-transform mb-2">
                 <Building2 className="w-5 h-5" />
@@ -105,7 +105,7 @@ export default async function HomePage() {
 
             <Link
               href="/training"
-              className="group flex flex-col items-center justify-center p-3.5 rounded-2xl bg-white/5 hover:bg-purple-600/20 border border-white/10 hover:border-purple-400/50 transition-all text-center"
+              className="group flex min-h-[102px] flex-col items-center justify-center p-3.5 rounded-2xl bg-white/[0.06] shadow-lg shadow-black/5 hover:bg-purple-600/20 border border-white/10 hover:border-purple-400/50 transition-all text-center"
             >
               <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center text-purple-400 group-hover:scale-110 transition-transform mb-2">
                 <GraduationCap className="w-5 h-5" />
@@ -115,7 +115,7 @@ export default async function HomePage() {
 
             <Link
               href="/results"
-              className="group flex flex-col items-center justify-center p-3.5 rounded-2xl bg-white/5 hover:bg-rose-600/20 border border-white/10 hover:border-rose-400/50 transition-all text-center"
+              className="group flex min-h-[102px] flex-col items-center justify-center p-3.5 rounded-2xl bg-white/[0.06] shadow-lg shadow-black/5 hover:bg-rose-600/20 border border-white/10 hover:border-rose-400/50 transition-all text-center"
             >
               <div className="w-10 h-10 rounded-xl bg-rose-500/20 flex items-center justify-center text-rose-400 group-hover:scale-110 transition-transform mb-2">
                 <CheckCircle className="w-5 h-5" />
@@ -125,7 +125,7 @@ export default async function HomePage() {
 
             <Link
               href="/jobs?sector=remote"
-              className="group flex flex-col items-center justify-center p-3.5 rounded-2xl bg-white/5 hover:bg-teal-600/20 border border-white/10 hover:border-teal-400/50 transition-all text-center"
+              className="group flex min-h-[102px] flex-col items-center justify-center p-3.5 rounded-2xl bg-white/[0.06] shadow-lg shadow-black/5 hover:bg-teal-600/20 border border-white/10 hover:border-teal-400/50 transition-all text-center"
             >
               <div className="w-10 h-10 rounded-xl bg-teal-500/20 flex items-center justify-center text-teal-400 group-hover:scale-110 transition-transform mb-2">
                 <Laptop className="w-5 h-5" />
@@ -137,7 +137,7 @@ export default async function HomePage() {
       </section>
 
       {/* Main Container */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-16">
         {/* Interactive Filterable Feed */}
         <HomeJobFeed initialJobs={jobs} />
 

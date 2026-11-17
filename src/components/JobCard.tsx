@@ -76,7 +76,7 @@ export default function JobCard({ job, featuredHighlight = false }: JobCardProps
 
   return (
     <article
-      className={`group relative bg-white rounded-2xl border transition-all duration-300 hover:shadow-xl hover:-translate-y-0.5 overflow-hidden flex flex-col justify-between ${
+      className={`group relative bg-gradient-to-b from-white to-slate-50/60 rounded-3xl border transition-all duration-300 hover:shadow-[0_18px_45px_rgba(15,118,110,0.12)] hover:-translate-y-1 overflow-hidden flex flex-col justify-between ${
         featuredHighlight || job.featured
           ? 'border-emerald-300/80 ring-1 ring-emerald-400/30 shadow-sm'
           : 'border-gray-200/90 hover:border-emerald-300'
@@ -129,7 +129,7 @@ export default function JobCard({ job, featuredHighlight = false }: JobCardProps
             <div className="text-xs text-emerald-700 font-bold mb-0.5 flex items-center gap-1.5">
               <span>{job.company}</span>
             </div>
-            <h3 className="font-bold text-gray-900 group-hover:text-emerald-700 text-base sm:text-lg leading-snug line-clamp-2 transition-colors">
+            <h3 className="font-black text-gray-950 group-hover:text-emerald-700 text-base sm:text-lg leading-snug line-clamp-2 transition-colors">
               <Link href={`/jobs/${job.slug}`}>
                 {job.title}
               </Link>

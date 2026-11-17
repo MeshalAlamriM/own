@@ -50,9 +50,9 @@ export default function Header() {
   ];
 
   return (
-    <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-200/80 shadow-xs">
+    <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-xl border-b border-slate-200/80 shadow-[0_8px_30px_rgba(15,23,42,0.06)]">
       {/* Top micro bar for channels & breaking news */}
-      <div className="bg-slate-900 text-slate-300 text-xs py-1.5 px-4 hidden sm:block">
+      <div className="bg-gradient-to-l from-slate-950 via-slate-900 to-emerald-950 text-slate-300 text-xs py-2 px-4 hidden sm:block">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <span className="flex items-center gap-1.5 text-emerald-400 font-semibold">
@@ -89,16 +89,17 @@ export default function Header() {
 
       {/* Main Navbar */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-20">
+        <div className="flex items-center justify-between h-[76px] sm:h-20">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-3 group">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center shadow-md shadow-emerald-600/20 group-hover:scale-105 transition-transform">
-              <Briefcase className="w-6 h-6" />
+            <div className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-[1.15rem] bg-gradient-to-tr from-emerald-700 via-emerald-600 to-teal-400 text-white flex items-center justify-center shadow-lg shadow-emerald-600/25 group-hover:scale-105 transition-transform">
+              <span className="absolute inset-1 rounded-xl border border-white/20" />
+              <Briefcase className="relative w-6 h-6 sm:w-7 sm:h-7" />
             </div>
             <div>
               <div className="flex items-center gap-1.5">
-                <span className="text-2xl font-black text-gray-900 tracking-tight">وظيفتك</span>
-                <span className="text-2xl font-black text-emerald-600">اليوم</span>
+                <span className="text-xl sm:text-2xl font-black text-gray-950 tracking-tight">وظيفتك</span>
+                <span className="text-xl sm:text-2xl font-black text-emerald-600">اليوم</span>
                 <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded-sm">السعودية</span>
               </div>
               <p className="text-[11px] text-gray-500 font-medium">أكبر منصة لأخبار الوظائف ونتائج القبول</p>
@@ -108,15 +109,16 @@ export default function Header() {
           {/* Desktop Nav Links */}
           <nav className="hidden lg:flex items-center gap-1">
             {navLinks.map((link) => {
-              const isActive = pathname === link.href || (link.href !== '/' && pathname.startsWith(link.href));
+              const linkPath = link.href.split('?')[0];
+              const isActive = linkPath === '/' ? pathname === '/' : pathname === linkPath || pathname.startsWith(`${linkPath}/`);
               return (
                 <Link
                   key={link.href}
                   href={link.href}
-                  className={`px-3.5 py-2 rounded-xl text-sm font-bold transition-colors ${
-                    isActive
-                      ? 'bg-emerald-50 text-emerald-700 font-black'
-                      : 'text-gray-700 hover:text-emerald-600 hover:bg-gray-50'
+                    className={`px-3.5 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                      isActive
+                      ? 'bg-emerald-50 text-emerald-700 font-black shadow-sm ring-1 ring-emerald-100'
+                      : 'text-gray-700 hover:text-emerald-700 hover:bg-emerald-50/60'
                   }`}
                 >
                   {link.label}

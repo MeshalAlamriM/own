@@ -72,7 +72,7 @@ export default function JobFilter({
     searchQuery.trim().length > 0;
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-200/80 shadow-xs p-4 sm:p-6 mb-8">
+    <div className="bg-white/95 rounded-3xl border border-slate-200/80 shadow-[0_12px_35px_rgba(15,23,42,0.06)] p-4 sm:p-6 mb-10">
       {/* Search Input Bar */}
       <div className="relative mb-5">
         <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-gray-400">
@@ -83,7 +83,7 @@ export default function JobFilter({
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder="ابحث باسم الوظيفة، اسم الشركة، الوزارة، أو التخصص (مثال: أرامكو، وزارة الدفاع، محاسبة)..."
-          className="w-full pr-11 pl-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition"
+          className="w-full pr-11 pl-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-gray-900 placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition shadow-inner"
         />
         {searchQuery && (
           <button
@@ -103,8 +103,8 @@ export default function JobFilter({
             onClick={() => onSectorChange(sec.id)}
             className={`shrink-0 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 ${
               selectedSector === sec.id
-                ? 'bg-emerald-600 text-white shadow-sm'
-                : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
+                : 'bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 text-gray-700'
             }`}
           >
             {sec.label}
