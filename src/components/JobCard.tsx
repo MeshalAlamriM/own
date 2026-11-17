@@ -110,14 +110,14 @@ export default function JobCard({ job, featuredHighlight = false }: JobCardProps
         </div>
 
         {/* Company and Title */}
-        <div className="flex items-start gap-3.5 mb-3">
-          <div className="w-12 h-12 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center shrink-0 p-1 overflow-hidden shadow-xs">
+        <div className="flex items-start gap-4 mb-4">
+          <div className="w-16 h-16 sm:w-[72px] sm:h-[72px] rounded-2xl bg-gradient-to-br from-white to-slate-50 border border-gray-200 flex items-center justify-center shrink-0 p-2 overflow-hidden shadow-sm">
             {job.companyLogo ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={job.companyLogo}
                 alt={job.company}
-                className="w-full h-full object-cover rounded-lg"
+                className="w-full h-full object-contain rounded-xl"
                 loading="lazy"
               />
             ) : (

@@ -158,17 +158,17 @@ export default async function JobDetailPage({ params }: JobPageProps) {
               </div>
 
               {/* Title & Company */}
-              <div className="flex items-start gap-4">
-                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-white border border-gray-200 shadow-xs flex items-center justify-center p-2 shrink-0">
+              <div className="flex items-start gap-4 sm:gap-5">
+                <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl bg-gradient-to-br from-white via-white to-slate-100 border border-gray-200 shadow-md flex items-center justify-center p-3 shrink-0 overflow-hidden">
                   {job.companyLogo ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={job.companyLogo}
                       alt={job.company}
-                      className="w-full h-full object-cover rounded-xl"
+                      className="w-full h-full object-contain rounded-2xl"
                     />
                   ) : (
-                    <Building2 className="w-8 h-8 text-gray-400" />
+                    <Building2 className="w-10 h-10 text-gray-400" />
                   )}
                 </div>
 
