@@ -1,0 +1,3 @@
+# Set NEXT_PUBLIC_SITE_URL to the canonical production origin, e.g. https://your-domain.example
+# Set NEXT_PUBLIC_ADSENSE_ID only after Google approves the site and provides a real ca-pub ID.
+# Create a distinct numeric AdSense ad-unit ID and pass it as the slotId prop to AdBanner.
