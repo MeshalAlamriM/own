@@ -3,6 +3,7 @@ import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { INITIAL_JOBS } from '@/data/initial-jobs';
 import { Job } from '@/types/job';
 import { isAdminAuthenticated } from '@/lib/admin-auth';
+import { recordAuditLog } from '@/lib/audit';
 
 function jobToRow(job: Job) {
   return {
@@ -68,6 +69,7 @@ export async function GET() {
     const { count } = await supabase
       .from('jobs')
       .select('*', { count: 'exact', head: true });
+    await recordAuditLog('seed_jobs', undefined, { seededCount: rows.length, totalJobsInCloud: count });
 
     return NextResponse.json({
       success: true,

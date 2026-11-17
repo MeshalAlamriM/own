@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isAdminAuthenticated } from '@/lib/admin-auth';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import { recordAuditLog } from '@/lib/audit';
 
 const BUCKET = 'company-logos';
 const MAX_BYTES = 2 * 1024 * 1024;
@@ -44,5 +45,6 @@ export async function POST(request: NextRequest) {
   }
 
   const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
+  await recordAuditLog('upload_logo', undefined, { path, fileType: file.type, size: file.size });
   return NextResponse.json({ success: true, url: data.publicUrl });
 }

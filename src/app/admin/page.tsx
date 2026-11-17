@@ -38,6 +38,7 @@ export default function AdminPage() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [dashboardStats, setDashboardStats] = useState<{ totalViews?: number; expiringSoon?: number; topViewed?: { id: string; slug: string; title: string; viewsCount: number }[] }>({});
+  const [auditLogs, setAuditLogs] = useState<{ id: number; action: string; resource_id?: string | null; details?: Record<string, unknown>; created_at: string }[]>([]);
   const [search, setSearch] = useState('');
   const [filterSector, setFilterSector] = useState<'all' | JobSector>('all');
   const [filterStatus, setFilterStatus] = useState<'all' | JobStatus>('all');
@@ -130,6 +131,16 @@ export default function AdminPage() {
     }
   };
 
+  const loadAuditLogs = async () => {
+    try {
+      const res = await fetch('/api/admin/audit-logs');
+      const data = await res.json();
+      if (data.success) setAuditLogs(data.data || []);
+    } catch {
+      // Audit history is informational and must not block the dashboard.
+    }
+  };
+
   useEffect(() => {
     // Load Telegram Settings from local storage
     const savedChannel = localStorage.getItem('tg_channel_id') || '';
@@ -141,6 +152,7 @@ export default function AdminPage() {
     fetch('/api/stats').then(res => res.json()).then(data => {
       if (data.success) setDashboardStats(data.data);
     }).catch(() => undefined);
+    loadAuditLogs();
     loadJobs();
   }, []);
 
@@ -301,6 +313,7 @@ export default function AdminPage() {
 
       setLogoFile(null);
       await loadJobs();
+      await loadAuditLogs();
       setModalOpen(false);
 
       // Auto-publish to Telegram if option checked and settings present
@@ -325,6 +338,7 @@ export default function AdminPage() {
         throw new Error(data.error || 'فشل حذف الإعلان من قاعدة البيانات');
       }
       setJobs(jobs.filter(j => j.id !== id));
+      await loadAuditLogs();
     } catch (err) {
       alert(err instanceof Error ? err.message : 'حدث خطأ أثناء الحذف');
     }
@@ -559,6 +573,20 @@ export default function AdminPage() {
             <h3 className="font-black text-gray-900 mb-3">الأكثر مشاهدة</h3>
             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
               {dashboardStats.topViewed.map((job) => <a key={job.id} href={`/jobs/${job.slug}`} target="_blank" rel="noreferrer" className="rounded-xl bg-slate-50 p-3 text-xs hover:bg-emerald-50"><span className="block truncate font-bold">{job.title}</span><span className="text-sky-600">{job.viewsCount.toLocaleString()} مشاهدة</span></a>)}
+            </div>
+          </div>
+        )}
+        {auditLogs.length > 0 && (
+          <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-2xs">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-black text-gray-900">آخر العمليات الإدارية</h3>
+              <span className="text-[11px] text-gray-500">آخر 30 عملية</span>
+            </div>
+            <div className="divide-y divide-gray-100">
+              {auditLogs.slice(0, 8).map((log) => {
+                const labels: Record<string, string> = { create_job: 'إضافة وظيفة', update_job: 'تعديل وظيفة', delete_job: 'حذف وظيفة', upload_logo: 'رفع شعار', publish_telegram: 'نشر في Telegram', seed_jobs: 'مزامنة وظائف' };
+                return <div key={log.id} className="flex items-center justify-between gap-3 py-2 text-xs"><span className="font-bold text-gray-700">{labels[log.action] || log.action}</span><span className="text-gray-400">{new Date(log.created_at).toLocaleString('ar-SA')}</span></div>;
+              })}
             </div>
           </div>
         )}

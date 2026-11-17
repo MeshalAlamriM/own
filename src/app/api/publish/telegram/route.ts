@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getJobById } from '@/data/store';
 import { sendTelegramBroadcast } from '@/lib/broadcast';
 import { isAdminAuthenticated } from '@/lib/admin-auth';
+import { recordAuditLog } from '@/lib/audit';
 
 export async function POST(request: NextRequest) {
   try {
@@ -50,6 +51,8 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    await recordAuditLog('publish_telegram', job.id, { title: job.title, company: job.company });
 
     return NextResponse.json({
       success: true,

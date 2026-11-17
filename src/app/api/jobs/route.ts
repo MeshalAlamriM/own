@@ -3,6 +3,7 @@ import { getAllJobs, createJob } from '@/data/store';
 import { JobFilterParams, JobSector, GenderType, JobStatus } from '@/types/job';
 import { isAdminAuthenticated } from '@/lib/admin-auth';
 import { validateJobInput } from '@/lib/job-validation';
+import { recordAuditLog } from '@/lib/audit';
 
 export async function GET(request: NextRequest) {
   try {
@@ -41,6 +42,7 @@ export async function POST(request: NextRequest) {
     if (validationError) return NextResponse.json({ success: false, error: validationError }, { status: 400 });
 
     const created = await createJob(body);
+    await recordAuditLog('create_job', created.id, { title: created.title, company: created.company });
     return NextResponse.json({ success: true, data: created }, { status: 201 });
   } catch (error) {
     console.error('API Error creating job:', error);
