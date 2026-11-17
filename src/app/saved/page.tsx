@@ -1,42 +1,41 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { Job } from '@/types/job';
 import JobCard from '@/components/JobCard';
-import { Bookmark, ArrowRight, Trash2 } from 'lucide-react';
+import PageHeader from '@/components/PageHeader';
+import { Bookmark, ArrowLeft, Trash2 } from 'lucide-react';
 
 export default function SavedJobsPage() {
   const [savedJobs, setSavedJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const loadSaved = async () => {
+  const loadSaved = useCallback(async () => {
     try {
       const ids: string[] = JSON.parse(localStorage.getItem('saved_jobs') || '[]');
       if (ids.length === 0) {
         setSavedJobs([]);
-        setLoading(false);
         return;
       }
 
       const res = await fetch('/api/jobs');
       const data = await res.json();
       if (data.success && Array.isArray(data.data)) {
-        const filtered = data.data.filter((job: Job) => ids.includes(job.id));
-        setSavedJobs(filtered);
+        setSavedJobs(data.data.filter((job: Job) => ids.includes(job.id)));
       }
     } catch (e) {
       console.error(e);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadSaved();
     window.addEventListener('bookmarks_updated', loadSaved);
     return () => window.removeEventListener('bookmarks_updated', loadSaved);
-  }, []);
+  }, [loadSaved]);
 
   const clearAll = () => {
     if (confirm('هل أنت متأكد من رغبتك في حذف كافة الوظائف المحفوظة؟')) {
@@ -47,57 +46,63 @@ export default function SavedJobsPage() {
   };
 
   return (
-    <div className="py-10 bg-slate-50 min-h-screen">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-200 pb-6">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-600 flex items-center justify-center">
-              <Bookmark className="w-6 h-6 fill-amber-500 text-amber-500" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-black text-gray-900">الوظائف المحفوظة</h1>
-              <p className="text-xs text-gray-500">قائمة الإعلانات التي قمت بحفظها للرجوع إليها والتقديم عليها لاحقاً</p>
-            </div>
-          </div>
+    <>
+      <PageHeader
+        eyebrow="مكتبتك الخاصة"
+        title="الوظائف المحفوظة"
+        description="الإعلانات التي حفظتها للرجوع إليها والتقديم عليها لاحقاً. تُحفظ على جهازك فقط."
+        icon={Bookmark}
+        compact
+      />
 
-          {savedJobs.length > 0 && (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12 space-y-8">
+        {savedJobs.length > 0 && (
+          <div className="flex items-center justify-between gap-4">
+            <p className="text-[14px] text-ink-600">
+              لديك <strong className="text-ink-950 tabular-nums">{savedJobs.length}</strong> إعلان محفوظ
+            </p>
             <button
+              type="button"
               onClick={clearAll}
-              className="flex items-center gap-1.5 text-xs font-bold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 px-3.5 py-2 rounded-xl transition"
+              className="inline-flex items-center gap-2 h-10 px-4 rounded-xl border border-rose-200 bg-rose-50 text-rose-700 text-[13px] font-semibold hover:bg-rose-100 transition-colors"
             >
               <Trash2 className="w-4 h-4" />
-              <span>إفراغ المحفوظات</span>
+              إفراغ المحفوظات
             </button>
-          )}
-        </div>
+          </div>
+        )}
 
         {loading ? (
-          <div className="py-20 text-center text-sm text-gray-500">جاري تحميل الوظائف المحفوظة...</div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5" aria-busy="true">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="h-72 rounded-2xl bg-ink-100 animate-pulse" />
+            ))}
+          </div>
         ) : savedJobs.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {savedJobs.map((job) => (
               <JobCard key={job.id} job={job} />
             ))}
           </div>
         ) : (
-          <div className="bg-white rounded-3xl border border-gray-200 p-12 text-center max-w-md mx-auto space-y-4">
-            <div className="w-16 h-16 rounded-full bg-amber-50 text-amber-500 flex items-center justify-center mx-auto">
+          <div className="rounded-3xl border border-dashed border-ink-200 bg-white p-12 text-center max-w-lg mx-auto">
+            <div className="w-16 h-16 rounded-2xl bg-saffron-50 text-saffron-600 flex items-center justify-center mx-auto">
               <Bookmark className="w-8 h-8" />
             </div>
-            <h3 className="text-lg font-bold text-gray-800">لا توجد وظائف محفوظة بعد</h3>
-            <p className="text-xs text-gray-500 leading-relaxed">
-              يمكنك النقر على أيقونة الإشارة المرجعية (الحفظ) الموجودة في أي إعلان وظيفي لحفظه هنا والرجوع إليه في أي وقت.
+            <h2 className="mt-5 text-[20px] font-bold text-ink-950">لا توجد وظائف محفوظة بعد</h2>
+            <p className="mt-2 text-[14px] text-ink-500 leading-[1.95]">
+              اضغط على أيقونة الحفظ في أي إعلان لتجده هنا لاحقاً.
             </p>
             <Link
-              href="/"
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-xl text-xs font-bold shadow-xs hover:bg-emerald-700 transition"
+              href="/jobs"
+              className="mt-6 inline-flex items-center gap-2 h-12 px-6 rounded-xl bg-ink-950 text-white text-[14px] font-semibold hover:bg-ink-800 transition-colors"
             >
-              <span>تصفح أحدث الوظائف الآن</span>
-              <ArrowRight className="w-4 h-4" />
+              تصفّح أحدث الوظائف
+              <ArrowLeft className="w-4 h-4 text-saffron-400" />
             </Link>
           </div>
         )}
       </div>
-    </div>
+    </>
   );
 }

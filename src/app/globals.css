@@ -151,3 +151,46 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* ==========================================================================
+   Editorial helpers
+   ========================================================================== */
+
+/* خط تمييز زعفراني خلف الكلمة */
+.marker {
+  background-image: linear-gradient(transparent 62%, var(--color-saffron-300) 62%, var(--color-saffron-300) 92%, transparent 92%);
+  padding-inline: 0.15em;
+  margin-inline: -0.15em;
+  border-radius: 2px;
+}
+
+/* شبكة نقاط خفيفة للخلفيات */
+.dots {
+  background-image: radial-gradient(rgba(20, 24, 36, 0.09) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+/* تنسيق نص الإعلان القادم من لوحة التحكم (HTML) */
+.job-prose { color: var(--color-ink-700); font-size: 0.95rem; line-height: 2; }
+.job-prose > * + * { margin-top: 1rem; }
+.job-prose h1, .job-prose h2, .job-prose h3, .job-prose h4 {
+  color: var(--color-ink-950);
+  font-weight: 700;
+  line-height: 1.5;
+  margin-top: 1.75rem;
+}
+.job-prose h2 { font-size: 1.2rem; }
+.job-prose h3 { font-size: 1.1rem; }
+.job-prose h4 { font-size: 1rem; }
+.job-prose p { margin-top: 0.85rem; }
+.job-prose strong { color: var(--color-ink-950); font-weight: 700; }
+.job-prose a { color: var(--color-saffron-700); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+.job-prose ul, .job-prose ol { padding-inline-start: 1.4rem; margin-top: 0.85rem; }
+.job-prose ul { list-style: disc; }
+.job-prose ol { list-style: decimal; }
+.job-prose li { margin-top: 0.4rem; }
+.job-prose li::marker { color: var(--color-saffron-500); }
+.job-prose table { width: 100%; border-collapse: collapse; font-size: 0.875rem; display: block; overflow-x: auto; }
+.job-prose th, .job-prose td { border: 1px solid var(--color-line); padding: 0.55rem 0.75rem; text-align: right; }
+.job-prose th { background: var(--color-paper-2); font-weight: 700; }
+.job-prose img { max-width: 100%; height: auto; border-radius: 0.75rem; }

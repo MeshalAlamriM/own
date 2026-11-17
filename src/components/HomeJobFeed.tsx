@@ -4,7 +4,8 @@ import { useState, useMemo } from 'react';
 import { Job, JobSector, GenderType, JobStatus } from '@/types/job';
 import JobCard from './JobCard';
 import JobFilter from './JobFilter';
-import { Flame, Sparkles, Inbox } from 'lucide-react';
+import { Sparkles, Inbox, ArrowDownUp, ChevronDown } from 'lucide-react';
+import { matchesSector } from '@/lib/ui';
 
 interface HomeJobFeedProps {
   initialJobs: Job[];
@@ -15,6 +16,12 @@ interface HomeJobFeedProps {
   defaultStatus?: JobStatus | 'all';
   defaultQuery?: string;
 }
+
+type SortKey = 'latest' | 'popular' | 'closing';
+
+const PAGE_SIZE = 12;
+
+const sectorKeys: JobSector[] = ['government', 'military', 'corporate', 'training', 'results', 'remote'];
 
 export default function HomeJobFeed({
   initialJobs,
@@ -31,6 +38,8 @@ export default function HomeJobFeed({
   const [selectedCity, setSelectedCity] = useState<string>(defaultCity);
   const [selectedStatus, setSelectedStatus] = useState<JobStatus | 'all'>(defaultStatus);
   const [searchQuery, setSearchQuery] = useState<string>(defaultQuery);
+  const [sort, setSort] = useState<SortKey>('latest');
+  const [visible, setVisible] = useState(PAGE_SIZE);
 
   const handleReset = () => {
     setSelectedSector('all');
@@ -39,49 +48,39 @@ export default function HomeJobFeed({
     setSelectedCity('all');
     setSelectedStatus('all');
     setSearchQuery('');
+    setVisible(PAGE_SIZE);
   };
 
+  // أي تغيير في الفلاتر يعيد العدّاد إلى الصفحة الأولى
+  const withReset =
+    <T,>(fn: (v: T) => void) =>
+    (v: T) => {
+      fn(v);
+      setVisible(PAGE_SIZE);
+    };
+
+  const sectorCounts = useMemo(() => {
+    const counts: Partial<Record<JobSector | 'all', number>> = { all: initialJobs.length };
+    sectorKeys.forEach((k) => {
+      counts[k] = initialJobs.filter((j) => matchesSector(j, k)).length;
+    });
+    return counts;
+  }, [initialJobs]);
+
   const filteredJobs = useMemo(() => {
-    return initialJobs.filter((job) => {
-      // Query filter
+    const list = initialJobs.filter((job) => {
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase().trim();
-        const inTitle = job.title.toLowerCase().includes(q);
-        const inCompany = job.company.toLowerCase().includes(q);
-        const inSummary = job.summary.toLowerCase().includes(q);
-        const inTags = job.tags?.some((t) => t.toLowerCase().includes(q));
-        if (!inTitle && !inCompany && !inSummary && !inTags) return false;
+        const hit =
+          job.title.toLowerCase().includes(q) ||
+          job.company.toLowerCase().includes(q) ||
+          job.summary.toLowerCase().includes(q) ||
+          job.tags?.some((t) => t.toLowerCase().includes(q));
+        if (!hit) return false;
       }
 
-      // Sector
-      if (selectedSector !== 'all') {
-        if (selectedSector === 'remote') {
-          const isRemote =
-            job.sector === 'remote' ||
-            job.city.includes('عن بعد') ||
-            job.location.includes('عن بعد') ||
-            job.tags?.some((t) => t.includes('عن بعد'));
-          if (!isRemote) return false;
-        } else if (selectedSector === 'results') {
-          const isResult =
-            job.sector === 'results' ||
-            job.status === 'results' ||
-            job.tags?.some((t) => t.includes('نتائج')) ||
-            job.title.includes('نتائج');
-          if (!isResult) return false;
-        } else if (selectedSector === 'training') {
-          const isTraining =
-            job.sector === 'training' ||
-            job.tags?.some((t) => t.includes('تدريب')) ||
-            job.title.includes('تدريب') ||
-            job.summary.includes('تدريب');
-          if (!isTraining) return false;
-        } else if (job.sector !== selectedSector) {
-          return false;
-        }
-      }
+      if (!matchesSector(job, selectedSector)) return false;
 
-      // Qualification
       if (selectedQualification !== 'all') {
         const hasQual = job.qualifications.some(
           (q) => q.includes(selectedQualification) || selectedQualification.includes(q)
@@ -89,29 +88,33 @@ export default function HomeJobFeed({
         if (!hasQual) return false;
       }
 
-      // Gender
       if (selectedGender !== 'all') {
-        if (job.gender !== 'both' && job.gender !== selectedGender) {
-          return false;
-        }
+        if (job.gender !== 'both' && job.gender !== selectedGender) return false;
       }
 
-      // City
       if (selectedCity !== 'all') {
-        if (!job.city.includes(selectedCity) && !job.location.includes(selectedCity)) {
-          return false;
-        }
+        if (!job.city.includes(selectedCity) && !job.location.includes(selectedCity)) return false;
       }
 
-      // Status
-      if (selectedStatus !== 'all') {
-        if (job.status !== selectedStatus) {
-          return false;
-        }
-      }
+      if (selectedStatus !== 'all' && job.status !== selectedStatus) return false;
 
       return true;
     });
+
+    const sorted = [...list];
+    if (sort === 'popular') {
+      sorted.sort((a, b) => (b.viewsCount || 0) - (a.viewsCount || 0));
+    } else if (sort === 'closing') {
+      const now = Date.now();
+      const key = (j: Job) => {
+        const t = new Date(`${j.endDate}T23:59:59`).getTime();
+        return t < now ? Number.MAX_SAFE_INTEGER : t; // المنتهية في النهاية
+      };
+      sorted.sort((a, b) => key(a) - key(b));
+    } else {
+      sorted.sort((a, b) => new Date(b.publishDate).getTime() - new Date(a.publishDate).getTime());
+    }
+    return sorted;
   }, [
     initialJobs,
     selectedSector,
@@ -120,9 +123,9 @@ export default function HomeJobFeed({
     selectedCity,
     selectedStatus,
     searchQuery,
+    sort,
   ]);
 
-  // Separate featured jobs if no active filter
   const isDefaultView =
     selectedSector === 'all' &&
     selectedQualification === 'all' &&
@@ -131,78 +134,111 @@ export default function HomeJobFeed({
     selectedStatus === 'all' &&
     !searchQuery.trim();
 
-  const featuredJobs = useMemo(() => {
-    return initialJobs.filter((j) => j.featured).slice(0, 3);
-  }, [initialJobs]);
+  const featuredJobs = useMemo(() => initialJobs.filter((j) => j.featured).slice(0, 3), [initialJobs]);
+
+  const shown = filteredJobs.slice(0, visible);
+  const remaining = filteredJobs.length - shown.length;
 
   return (
-    <section id="jobs-section" className="scroll-mt-24">
-      {/* Featured Jobs Section (Only in default view) */}
+    <section id="jobs-section" className="scroll-mt-28">
+      {/* الإعلانات المميزة (العرض الافتراضي فقط) */}
       {isDefaultView && featuredJobs.length > 0 && (
-        <div className="mb-10">
-          <div className="flex items-center justify-between mb-5">
-            <div className="flex items-center gap-2">
-              <span className="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center">
-                <Sparkles className="w-4 h-4 fill-amber-500" />
-              </span>
-              <div>
-                <h3 className="text-xl font-black text-gray-900">إعلانات وظائف مختارة ومميزة</h3>
-                <p className="text-xs text-gray-500">أهم الفرص الوظيفية المتاحة حالياً في كبرى الجهات والشركات</p>
-              </div>
-            </div>
-            <div className="hidden sm:flex items-center gap-1.5 text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 px-3 py-1 rounded-full">
-              <Flame className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
-              الأعلى تفاعلاً
+        <div className="mb-12">
+          <div className="flex items-end justify-between gap-4 mb-5">
+            <div>
+              <p className="inline-flex items-center gap-1.5 text-[12px] font-bold text-saffron-700 mb-1.5">
+                <Sparkles className="w-3.5 h-3.5" />
+                اختيار التحرير
+              </p>
+              <h2 className="text-[22px] sm:text-[26px] font-bold text-ink-950">فرص مختارة هذا الأسبوع</h2>
             </div>
           </div>
-
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             {featuredJobs.map((job) => (
-              <JobCard key={`feat-${job.id}`} job={job} featuredHighlight={true} />
+              <JobCard key={`feat-${job.id}`} job={job} featuredHighlight />
             ))}
           </div>
         </div>
       )}
 
-      {/* Filter Component */}
+      <div className="flex items-end justify-between gap-4 mb-5">
+        <div>
+          <p className="text-[12px] font-bold text-ink-400 mb-1.5">كل الإعلانات</p>
+          <h2 className="text-[22px] sm:text-[26px] font-bold text-ink-950">تصفّح الوظائف</h2>
+        </div>
+
+        <label className="inline-flex items-center gap-2 text-[13px] text-ink-500">
+          <ArrowDownUp className="w-4 h-4" />
+          <span className="hidden sm:inline">الترتيب:</span>
+          <span className="relative">
+            <select
+              value={sort}
+              onChange={(e) => setSort(e.target.value as SortKey)}
+              className="h-10 appearance-none ps-3 pe-8 rounded-xl border border-line bg-white text-ink-800 font-semibold outline-none focus:border-saffron-500 focus:ring-2 focus:ring-saffron-200"
+            >
+              <option value="latest">الأحدث</option>
+              <option value="popular">الأكثر مشاهدة</option>
+              <option value="closing">ينتهي قريباً</option>
+            </select>
+            <ChevronDown className="pointer-events-none absolute top-1/2 -translate-y-1/2 end-2.5 w-4 h-4 text-ink-400" />
+          </span>
+        </label>
+      </div>
+
       <JobFilter
         selectedSector={selectedSector}
-        onSectorChange={setSelectedSector}
+        onSectorChange={withReset(setSelectedSector)}
         selectedQualification={selectedQualification}
-        onQualificationChange={setSelectedQualification}
+        onQualificationChange={withReset(setSelectedQualification)}
         selectedGender={selectedGender}
-        onGenderChange={setSelectedGender}
+        onGenderChange={withReset(setSelectedGender)}
         selectedCity={selectedCity}
-        onCityChange={setSelectedCity}
+        onCityChange={withReset(setSelectedCity)}
         selectedStatus={selectedStatus}
-        onStatusChange={setSelectedStatus}
+        onStatusChange={withReset(setSelectedStatus)}
         searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
+        onSearchChange={withReset(setSearchQuery)}
         onReset={handleReset}
         totalCount={filteredJobs.length}
+        sectorCounts={sectorCounts}
       />
 
-      {/* Results Grid */}
-      {filteredJobs.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {filteredJobs.map((job) => (
-            <JobCard key={job.id} job={job} />
-          ))}
-        </div>
+      {shown.length > 0 ? (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {shown.map((job) => (
+              <JobCard key={job.id} job={job} />
+            ))}
+          </div>
+
+          {remaining > 0 && (
+            <div className="mt-10 text-center">
+              <button
+                type="button"
+                onClick={() => setVisible((v) => v + PAGE_SIZE)}
+                className="inline-flex items-center gap-2 h-12 px-7 rounded-xl bg-ink-950 text-white text-[14px] font-semibold hover:bg-ink-800 transition-colors"
+              >
+                <span>عرض المزيد</span>
+                <span className="text-saffron-400 tabular-nums">({remaining})</span>
+              </button>
+            </div>
+          )}
+        </>
       ) : (
-        <div className="text-center py-16 bg-white rounded-2xl border border-gray-200/80 p-8 shadow-xs">
-          <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4 text-gray-400">
+        <div className="text-center py-16 px-6 rounded-3xl border border-dashed border-ink-200 bg-white">
+          <div className="w-16 h-16 rounded-2xl bg-paper-2 flex items-center justify-center mx-auto mb-4 text-ink-400">
             <Inbox className="w-8 h-8" />
           </div>
-          <h4 className="text-lg font-bold text-gray-800 mb-1">لم يتم العثور على وظائف مطابقة</h4>
-          <p className="text-sm text-gray-500 max-w-md mx-auto mb-5">
-            جرب تعديل خيارات البحث أو الفلترة أو إعادة تعيين الفلاتر للاطلاع على كافة الإعلانات المتوفرة.
+          <h3 className="text-[18px] font-bold text-ink-900 mb-1.5">لا توجد إعلانات مطابقة</h3>
+          <p className="text-[14px] text-ink-500 max-w-md mx-auto mb-6 leading-relaxed">
+            جرّب كلمات أخرى أو خفّف الفلاتر، أو أعد التعيين لعرض كل الإعلانات المتاحة.
           </p>
           <button
+            type="button"
             onClick={handleReset}
-            className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs transition"
+            className="h-11 px-6 rounded-xl bg-saffron-400 hover:bg-saffron-300 text-ink-950 text-[14px] font-bold transition-colors"
           >
-            عرض كافة الوظائف ({initialJobs.length})
+            عرض كل الوظائف ({initialJobs.length})
           </button>
         </div>
       )}

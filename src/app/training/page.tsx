@@ -2,60 +2,73 @@ import { Metadata } from 'next';
 import { getAllJobs } from '@/data/store';
 import JobCard from '@/components/JobCard';
 import TelegramBanner from '@/components/TelegramBanner';
-import { GraduationCap, Sparkles } from 'lucide-react';
+import PageHeader from '@/components/PageHeader';
+import { matchesSector } from '@/lib/ui';
+import { GraduationCap, Wallet, Home, HeartPulse } from 'lucide-react';
 
 export const metadata: Metadata = {
   title: 'برامج التدريب المنتهي بالتوظيف والابتعاث | وظيفتك اليوم',
   description: 'أحدث برامج التدريب المنتهي بالتوظيف في أرامكو، سابك، صندوق الاستثمارات، والجهات الكبرى مع مكافآت وسكن وتأمين شامل.',
 };
 
+const perks = [
+  { icon: Wallet, label: 'مكافأة شهرية' },
+  { icon: Home, label: 'سكن وتنقل' },
+  { icon: HeartPulse, label: 'تأمين صحي' },
+  { icon: GraduationCap, label: 'تعيين مباشر' },
+];
+
 export default async function TrainingPage() {
   const allJobs = await getAllJobs();
-  const trainingJobs = allJobs.filter(
-    (j) =>
-      j.sector === 'training' ||
-      j.tags?.some((t) => t.includes('تدريب')) ||
-      j.title.includes('تدريب') ||
-      j.summary.includes('تدريب')
-  );
+  const trainingJobs = allJobs.filter((j) => matchesSector(j, 'training'));
 
   return (
-    <div className="py-10 bg-slate-50 min-h-screen">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
-        {/* Banner */}
-        <div className="bg-gradient-to-r from-purple-800 via-indigo-800 to-purple-950 text-white rounded-3xl p-6 sm:p-10 shadow-lg relative overflow-hidden">
-          <div className="relative z-10 max-w-2xl space-y-3">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 text-xs font-bold">
-              <GraduationCap className="w-4 h-4 text-purple-200" />
-              <span>تأهيل احترافي وتوظيف مباشر</span>
+    <>
+      <PageHeader
+        eyebrow="تأهيل احترافي وتوظيف مباشر"
+        title="برامج التدريب المنتهي بالتوظيف والتدرج المهني"
+        description="فرص تدريبية مدفوعة مع مكافآت شهرية وسكن وتأمين صحي، تنتهي بالتعيين المباشر في كبرى الشركات والمؤسسات الوطنية."
+        icon={GraduationCap}
+      >
+        <ul className="flex flex-wrap gap-2.5">
+          {perks.map((p) => {
+            const Icon = p.icon;
+            return (
+              <li key={p.label} className="inline-flex items-center gap-2 h-10 px-4 rounded-full bg-white/10 ring-1 ring-white/15 text-[13px] font-semibold text-white">
+                <Icon className="w-4 h-4 text-saffron-400" />
+                {p.label}
+              </li>
+            );
+          })}
+        </ul>
+      </PageHeader>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-14">
+        <section>
+          <div className="flex items-end justify-between mb-7">
+            <div>
+              <p className="text-[12px] font-bold text-violet-600 mb-1.5">التسجيل مفتوح</p>
+              <h2 className="text-[24px] sm:text-[28px] font-bold text-ink-950">
+                البرامج المتاحة حالياً <span className="text-ink-400 tabular-nums">({trainingJobs.length})</span>
+              </h2>
             </div>
-            <h1 className="text-2xl sm:text-4xl font-black">
-              برامج التدريب المنتهي بالتوظيف والتدرج المهني
-            </h1>
-            <p className="text-xs sm:text-sm text-purple-100 leading-relaxed">
-              فرص تدريبية مدفوعة الأجر مع مكافآت شهرية وسكن وتأمين صحي شامل تنتهي بالتعيين المباشر في كبرى الشركات والمؤسسات الوطنية.
-            </p>
-          </div>
-        </div>
-
-        {/* Listings */}
-        <div className="space-y-6">
-          <div className="flex items-center justify-between border-b border-gray-200 pb-4">
-            <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-purple-600" />
-              <span>البرامج المتاحة للتسجيل حالياً ({trainingJobs.length})</span>
-            </h2>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {trainingJobs.map((job) => (
-              <JobCard key={job.id} job={job} featuredHighlight={true} />
-            ))}
-          </div>
-        </div>
+          {trainingJobs.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {trainingJobs.map((job) => (
+                <JobCard key={job.id} job={job} />
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-3xl border border-dashed border-ink-200 bg-white p-14 text-center text-[14px] text-ink-500">
+              لا توجد برامج تدريب معلنة حالياً. اشترك في قنواتنا ليصلك التنبيه فور فتح التسجيل.
+            </div>
+          )}
+        </section>
 
         <TelegramBanner />
       </div>
-    </div>
+    </>
   );
 }

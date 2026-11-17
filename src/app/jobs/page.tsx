@@ -3,6 +3,8 @@ import { Suspense } from 'react';
 import { getAllJobs } from '@/data/store';
 import { JobSector, GenderType, JobStatus } from '@/types/job';
 import HomeJobFeed from '@/components/HomeJobFeed';
+import PageHeader from '@/components/PageHeader';
+import { Briefcase } from 'lucide-react';
 
 export const metadata: Metadata = {
   title: 'دليل الوظائف الشاغرة في السعودية | وظيفتك اليوم',
@@ -20,65 +22,56 @@ interface JobsPageProps {
   }>;
 }
 
+const titles: Record<string, string> = {
+  government: 'أحدث الوظائف الحكومية والمدنية',
+  military: 'أحدث الوظائف العسكرية في الدفاع والداخلية والحرس',
+  corporate: 'أحدث وظائف الشركات الكبرى والبنوك',
+  training: 'برامج التدريب المنتهي بالتوظيف',
+  results: 'نتائج القبول والترشيح المبدئي والنهائي',
+  remote: 'وظائف العمل عن بُعد',
+};
+
 async function JobsFeedContainer({ searchParams }: JobsPageProps) {
   const params = await searchParams;
   const jobs = await getAllJobs();
 
-  const getPageTitle = () => {
-    switch (params.sector) {
-      case 'government':
-        return 'أحدث الوظائف الحكومية والمدنية';
-      case 'military':
-        return 'أحدث الوظائف العسكرية وقطاعات وزارة الدفاع والداخلية';
-      case 'corporate':
-        return 'أحدث وظائف الشركات الكبرى والبنوك';
-      case 'training':
-        return 'برامج التدريب المنتهي بالتوظيف';
-      case 'results':
-        return 'نتائج القبول والترشيح المبدئي والنهائي';
-      case 'remote':
-        return 'وظائف العمل عن بُعد (من المنزل)';
-      default:
-        return 'دليل كافة الوظائف الشاغرة بالمملكة';
-    }
-  };
+  const title = params.q
+    ? `نتائج البحث عن «${params.q}»`
+    : (params.sector && titles[params.sector]) || 'دليل كل الوظائف الشاغرة بالمملكة';
 
   return (
-    <div className="space-y-8">
-      <div className="border-b border-gray-200 pb-6">
-        <h1 className="text-2xl sm:text-3xl font-black text-gray-900 mb-2">
-          {getPageTitle()}
-        </h1>
-        <p className="text-xs sm:text-sm text-gray-500">
-          تحديث دوري ومستمر على مدار الساعة مع روابط التقديم الرسمية المباشرة.
-        </p>
-      </div>
-
-      <HomeJobFeed
-        initialJobs={jobs}
-        defaultSector={params.sector || 'all'}
-        defaultQualification={params.qualification || 'all'}
-        defaultGender={params.gender || 'all'}
-        defaultCity={params.city || 'all'}
-        defaultStatus={params.status || 'all'}
-        defaultQuery={params.q || ''}
+    <>
+      <PageHeader
+        eyebrow="دليل الوظائف"
+        title={title}
+        description="تحديث مستمر على مدار الساعة، وفي كل إعلان رابط التقديم الرسمي المباشر ومواعيد البدء والانتهاء."
+        icon={Briefcase}
+        compact
       />
-    </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12">
+        <HomeJobFeed
+          initialJobs={jobs}
+          defaultSector={params.sector || 'all'}
+          defaultQualification={params.qualification || 'all'}
+          defaultGender={params.gender || 'all'}
+          defaultCity={params.city || 'all'}
+          defaultStatus={params.status || 'all'}
+          defaultQuery={params.q || ''}
+        />
+      </div>
+    </>
   );
 }
 
 export default function JobsListingPage(props: JobsPageProps) {
   return (
-    <div className="py-10 bg-slate-50 min-h-screen">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <Suspense fallback={
-          <div className="py-20 text-center text-sm text-gray-500">
-            جاري تحميل إعلانات الوظائف...
-          </div>
-        }>
-          <JobsFeedContainer {...props} />
-        </Suspense>
-      </div>
-    </div>
+    <Suspense
+      fallback={
+        <div className="py-32 text-center text-[14px] text-ink-500">جاري تحميل إعلانات الوظائف…</div>
+      }
+    >
+      <JobsFeedContainer {...props} />
+    </Suspense>
   );
 }

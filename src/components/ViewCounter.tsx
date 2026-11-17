@@ -28,8 +28,8 @@ export default function ViewCounter({ jobId, initialViews }: ViewCounterProps) {
   }, [jobId]);
 
   return (
-    <span className="flex items-center gap-1">
-      <Eye className="w-3.5 h-3.5" />
+    <span className="inline-flex items-center gap-1.5">
+      <Eye className="w-4 h-4" />
       {views.toLocaleString('ar-SA')} مشاهدة
     </span>
   );

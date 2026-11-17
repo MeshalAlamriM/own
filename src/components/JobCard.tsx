@@ -2,176 +2,129 @@
 
 import Link from 'next/link';
 import { Job } from '@/types/job';
-import { MapPin, Users, GraduationCap, Clock, CheckCircle2, AlertTriangle, ArrowLeft, Building2, Flame } from 'lucide-react';
+import { MapPin, GraduationCap, Users, ArrowUpLeft, Building2, Flame, Sparkles } from 'lucide-react';
 import BookmarkButton from './BookmarkButton';
 import ShareButtons from './ShareButtons';
 import JobCountdown from './JobCountdown';
+import { sectorStyle, timeAgoAr } from '@/lib/ui';
 
 interface JobCardProps {
   job: Job;
   featuredHighlight?: boolean;
 }
 
-export default function JobCard({ job, featuredHighlight = false }: JobCardProps) {
-  // Sector color classes
-  const getSectorBadge = (sector: Job['sector']) => {
-    switch (sector) {
-      case 'military':
-        return 'bg-amber-100 text-amber-900 border-amber-200';
-      case 'government':
-        return 'bg-emerald-100 text-emerald-900 border-emerald-200';
-      case 'corporate':
-        return 'bg-blue-100 text-blue-900 border-blue-200';
-      case 'training':
-        return 'bg-purple-100 text-purple-900 border-purple-200';
-      case 'results':
-        return 'bg-rose-100 text-rose-900 border-rose-200';
-      case 'remote':
-        return 'bg-teal-100 text-teal-900 border-teal-200';
-      default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
-  };
+const statusLabel: Record<Job['status'], { text: string; cls: string } | null> = {
+  active: null,
+  expiring_soon: { text: 'ينتهي قريباً', cls: 'bg-rose-50 text-rose-700 ring-rose-200' },
+  upcoming: { text: 'يبدأ قريباً', cls: 'bg-saffron-50 text-saffron-700 ring-saffron-200' },
+  results: { text: 'أُعلنت النتائج', cls: 'bg-violet-50 text-violet-700 ring-violet-200' },
+  expired: { text: 'انتهى التقديم', cls: 'bg-ink-100 text-ink-600 ring-ink-200' },
+};
 
-  const getStatusBadge = (status: Job['status']) => {
-    switch (status) {
-      case 'active':
-        return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-            متاح للتقديم
-          </span>
-        );
-      case 'expiring_soon':
-        return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">
-            <AlertTriangle className="w-3 h-3 text-rose-500" />
-            ينتهي قريباً
-          </span>
-        );
-      case 'results':
-        return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
-            <CheckCircle2 className="w-3 h-3 text-indigo-600" />
-            أعلنت النتائج
-          </span>
-        );
-      case 'upcoming':
-        return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
-            <Clock className="w-3 h-3 text-amber-500" />
-            يبدأ قريباً
-          </span>
-        );
-      case 'expired':
-        return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-600 border border-gray-200">
-            انتهى التقديم
-          </span>
-        );
-      default:
-        return null;
-    }
-  };
+export default function JobCard({ job, featuredHighlight = false }: JobCardProps) {
+  const sector = sectorStyle[job.sector] ?? sectorStyle.government;
+  const status = statusLabel[job.status];
+  const highlighted = featuredHighlight || job.featured;
+  const expired = job.status === 'expired';
 
   return (
     <article
-      className={`group relative bg-gradient-to-b from-white to-slate-50/60 rounded-3xl border transition-all duration-300 hover:shadow-[0_18px_45px_rgba(15,118,110,0.12)] hover:-translate-y-1 overflow-hidden flex flex-col justify-between ${
-        featuredHighlight || job.featured
-          ? 'border-emerald-300/80 ring-1 ring-emerald-400/30 shadow-sm'
-          : 'border-gray-200/90 hover:border-emerald-300'
-      }`}
+      className={`group relative flex flex-col bg-white rounded-2xl border transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lift ${
+        highlighted ? 'border-saffron-300' : 'border-line hover:border-ink-200'
+      } ${expired ? 'opacity-75' : ''}`}
     >
-      {/* Top Banner if Featured / Urgent */}
+      {/* شريط جانبي للعاجل */}
       {job.urgent && (
-        <div className="bg-gradient-to-r from-rose-500 to-amber-500 text-white text-[11px] font-bold py-1 px-4 flex items-center justify-between">
-          <span className="flex items-center gap-1">
-            <Flame className="w-3.5 h-3.5" />
-            إعلان عاجل ومهم
-          </span>
-          <span>سارع بالتقديم قبل إغلاق البوابة</span>
-        </div>
+        <span className="absolute top-5 -start-px h-10 w-1 rounded-e-full bg-rose-500" aria-hidden="true" />
       )}
 
-      <div className="p-5 sm:p-6 flex-1 flex flex-col">
-        {/* Header Tags & Status */}
-        <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
-          <div className="flex items-center gap-2">
-            <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-md border ${getSectorBadge(job.sector)}`}>
-              {job.sectorLabel}
-            </span>
-            {getStatusBadge(job.status)}
-          </div>
-
-          <div className="flex items-center gap-1">
-            <BookmarkButton jobId={job.id} />
-            <ShareButtons title={job.title} compact={true} />
-          </div>
-        </div>
-
-        {/* Company and Title */}
-        <div className="flex items-start gap-4 mb-4">
-          <div className="w-16 h-16 sm:w-[72px] sm:h-[72px] rounded-2xl bg-gradient-to-br from-white to-slate-50 border border-gray-200 flex items-center justify-center shrink-0 p-2 overflow-hidden shadow-sm">
-            {job.companyLogo ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={job.companyLogo}
-                alt={job.company}
-                className="w-full h-full object-contain rounded-xl"
-                loading="lazy"
-              />
-            ) : (
-              <Building2 className="w-6 h-6 text-gray-400" />
-            )}
-          </div>
-
-          <div className="flex-1 min-w-0">
-            <div className="text-xs text-emerald-700 font-bold mb-0.5 flex items-center gap-1.5">
-              <span>{job.company}</span>
+      <div className="p-5 flex-1 flex flex-col">
+        {/* الصف العلوي */}
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-12 h-12 rounded-xl bg-paper border border-line flex items-center justify-center shrink-0 overflow-hidden p-1.5">
+              {job.companyLogo ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={job.companyLogo} alt={job.company} className="w-full h-full object-contain" loading="lazy" />
+              ) : (
+                <Building2 className="w-5 h-5 text-ink-300" />
+              )}
             </div>
-            <h3 className="font-black text-gray-950 group-hover:text-emerald-700 text-base sm:text-lg leading-snug line-clamp-2 transition-colors">
-              <Link href={`/jobs/${job.slug}`}>
-                {job.title}
-              </Link>
-            </h3>
+            <div className="min-w-0">
+              <p className="text-[13px] font-semibold text-ink-700 truncate">{job.company}</p>
+              <p className="text-[12px] text-ink-400 mt-0.5" suppressHydrationWarning>
+                {timeAgoAr(job.publishDate)}
+              </p>
+            </div>
           </div>
+          <BookmarkButton jobId={job.id} className="relative z-10 -mt-1 -me-1" />
         </div>
 
-        {/* Brief summary */}
-        <p className="text-gray-600 text-xs sm:text-sm line-clamp-2 mb-4 leading-relaxed">
-          {job.summary}
-        </p>
-
-        {/* Key Attributes Pills */}
-        <div className="mt-auto pt-3 border-t border-gray-100 grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs text-gray-600 mb-4">
-          <div className="flex items-center gap-1.5 bg-gray-50/80 px-2.5 py-1.5 rounded-lg border border-gray-100">
-            <MapPin className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-            <span className="truncate" title={job.location}>{job.city}</span>
-          </div>
-
-          <div className="flex items-center gap-1.5 bg-gray-50/80 px-2.5 py-1.5 rounded-lg border border-gray-100">
-            <GraduationCap className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-            <span className="truncate" title={job.qualifications.join('، ')}>
-              {job.qualifications[0]} {job.qualifications.length > 1 ? `+${job.qualifications.length - 1}` : ''}
+        {/* الوسوم */}
+        <div className="flex flex-wrap items-center gap-1.5 mt-4">
+          <span className={`inline-flex items-center gap-1.5 h-6 px-2.5 rounded-full text-[12px] font-semibold ring-1 ${sector.chip}`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${sector.dot}`} />
+            {job.sectorLabel}
+          </span>
+          {job.urgent && (
+            <span className="inline-flex items-center gap-1 h-6 px-2.5 rounded-full text-[12px] font-semibold bg-rose-500 text-white">
+              <Flame className="w-3 h-3" />
+              عاجل
             </span>
-          </div>
-
-          <div className="flex items-center gap-1.5 bg-gray-50/80 px-2.5 py-1.5 rounded-lg border border-gray-100 col-span-2 sm:col-span-1">
-            <Users className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-            <span className="truncate">{job.genderLabel}</span>
-          </div>
+          )}
+          {job.featured && !job.urgent && (
+            <span className="inline-flex items-center gap-1 h-6 px-2.5 rounded-full text-[12px] font-semibold bg-saffron-400 text-ink-950">
+              <Sparkles className="w-3 h-3" />
+              مميز
+            </span>
+          )}
+          {status && (
+            <span className={`inline-flex items-center h-6 px-2.5 rounded-full text-[12px] font-semibold ring-1 ${status.cls}`}>
+              {status.text}
+            </span>
+          )}
         </div>
 
-        {/* Remaining Time Countdown & Action Button */}
-        <div className="flex items-center justify-between gap-3 pt-1">
-          <JobCountdown endDate={job.endDate} compact={true} />
+        {/* العنوان */}
+        <h3 className="mt-3 text-[17px] font-bold leading-[1.6] text-ink-950 line-clamp-2 group-hover:text-saffron-700 transition-colors">
+          <Link href={`/jobs/${job.slug}`} className="after:absolute after:inset-0 after:content-[''] after:z-0">
+            {job.title}
+          </Link>
+        </h3>
 
+        <p className="mt-2 text-[13px] leading-[1.9] text-ink-500 line-clamp-2">{job.summary}</p>
+
+        {/* المعلومات */}
+        <ul className="mt-4 pt-4 border-t border-dashed border-line flex flex-wrap gap-x-4 gap-y-2 text-[12.5px] text-ink-600">
+          <li className="inline-flex items-center gap-1.5 min-w-0">
+            <MapPin className="w-3.5 h-3.5 text-ink-400 shrink-0" />
+            <span className="truncate" title={job.location}>{job.city}</span>
+          </li>
+          <li className="inline-flex items-center gap-1.5 min-w-0">
+            <GraduationCap className="w-3.5 h-3.5 text-ink-400 shrink-0" />
+            <span className="truncate" title={job.qualifications.join('، ')}>
+              {job.qualifications[0]}
+              {job.qualifications.length > 1 ? ` +${job.qualifications.length - 1}` : ''}
+            </span>
+          </li>
+          <li className="inline-flex items-center gap-1.5">
+            <Users className="w-3.5 h-3.5 text-ink-400 shrink-0" />
+            <span>{job.genderLabel}</span>
+          </li>
+        </ul>
+      </div>
+
+      {/* التذييل */}
+      <div className="relative z-10 flex items-center justify-between gap-3 px-5 py-3.5 border-t border-line bg-paper/60 rounded-b-2xl">
+        <JobCountdown endDate={job.endDate} startDate={job.startDate} compact />
+        <div className="flex items-center gap-1">
+          <ShareButtons title={job.title} compact />
           <Link
             href={`/jobs/${job.slug}`}
-            className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition shadow-xs hover:shadow active:scale-[0.98]"
+            aria-label={`تفاصيل: ${job.title}`}
+            className="w-9 h-9 inline-flex items-center justify-center rounded-xl bg-ink-950 text-saffron-400 group-hover:bg-saffron-400 group-hover:text-ink-950 transition-colors"
           >
-            <span>التفاصيل والتقديم</span>
-            <ArrowLeft className="w-3.5 h-3.5" />
+            <ArrowUpLeft className="w-4 h-4" />
           </Link>
         </div>
       </div>

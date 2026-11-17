@@ -1,7 +1,8 @@
 'use client';
 
+import { useState } from 'react';
 import { JobSector, GenderType, JobStatus } from '@/types/job';
-import { Search, Filter, RotateCcw } from 'lucide-react';
+import { Search, RotateCcw, SlidersHorizontal, X, ChevronDown } from 'lucide-react';
 
 interface JobFilterProps {
   selectedSector: JobSector | 'all';
@@ -18,6 +19,84 @@ interface JobFilterProps {
   onSearchChange: (query: string) => void;
   onReset: () => void;
   totalCount: number;
+  /** عدد الإعلانات لكل قطاع (اختياري) */
+  sectorCounts?: Partial<Record<JobSector | 'all', number>>;
+}
+
+const sectors: { id: JobSector | 'all'; label: string }[] = [
+  { id: 'all', label: 'الكل' },
+  { id: 'government', label: 'حكومية' },
+  { id: 'military', label: 'عسكرية' },
+  { id: 'corporate', label: 'شركات' },
+  { id: 'training', label: 'تدريب' },
+  { id: 'results', label: 'نتائج القبول' },
+  { id: 'remote', label: 'عن بُعد' },
+];
+
+const qualifications = [
+  { id: 'all', label: 'كافة المؤهلات' },
+  { id: 'ثانوية', label: 'ثانوية عامة فما دون' },
+  { id: 'دبلوم', label: 'دبلوم' },
+  { id: 'بكالوريوس', label: 'بكالوريوس' },
+  { id: 'ماجستير', label: 'ماجستير فأعلى' },
+];
+
+const cities = [
+  { id: 'all', label: 'كافة المناطق' },
+  { id: 'الرياض', label: 'الرياض' },
+  { id: 'جدة', label: 'جدة ومكة' },
+  { id: 'الشرقية', label: 'المنطقة الشرقية' },
+  { id: 'تبوك', label: 'نيوم وتبوك' },
+  { id: 'عن بُعد', label: 'عن بُعد' },
+];
+
+const genders = [
+  { id: 'all', label: 'رجال ونساء' },
+  { id: 'male', label: 'رجال' },
+  { id: 'female', label: 'نساء' },
+];
+
+const statuses = [
+  { id: 'all', label: 'كافة الحالات' },
+  { id: 'active', label: 'متاح الآن' },
+  { id: 'expiring_soon', label: 'ينتهي قريباً' },
+  { id: 'upcoming', label: 'يبدأ قريباً' },
+  { id: 'results', label: 'أُعلنت النتائج' },
+];
+
+function Select({
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  options: { id: string; label: string }[];
+}) {
+  const active = value !== 'all';
+  return (
+    <label className="block">
+      <span className="block text-[12px] font-semibold text-ink-500 mb-1.5">{label}</span>
+      <span className="relative block">
+        <select
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className={`w-full h-11 appearance-none ps-3.5 pe-9 rounded-xl border text-[13.5px] font-medium bg-white outline-none transition-colors focus:border-saffron-500 focus:ring-2 focus:ring-saffron-200 ${
+            active ? 'border-ink-900 text-ink-950' : 'border-line text-ink-700'
+          }`}
+        >
+          {options.map((o) => (
+            <option key={o.id} value={o.id}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+        <ChevronDown className="pointer-events-none absolute top-1/2 -translate-y-1/2 end-3 w-4 h-4 text-ink-400" />
+      </span>
+    </label>
+  );
 }
 
 export default function JobFilter({
@@ -34,159 +113,170 @@ export default function JobFilter({
   searchQuery,
   onSearchChange,
   onReset,
-  totalCount
+  totalCount,
+  sectorCounts,
 }: JobFilterProps) {
-  const sectors: { id: JobSector | 'all'; label: string; icon?: string }[] = [
-    { id: 'all', label: 'جميع الإعلانات' },
-    { id: 'government', label: 'وظائف حكومية' },
-    { id: 'military', label: 'وظائف عسكرية' },
-    { id: 'corporate', label: 'شركات كبرى' },
-    { id: 'training', label: 'تدريب وتأهيل' },
-    { id: 'results', label: 'نتائج القبول' },
-    { id: 'remote', label: 'عمل عن بُعد' },
-  ];
+  const [advancedOpen, setAdvancedOpen] = useState(false);
 
-  const qualifications = [
-    { id: 'all', label: 'كافة المؤهلات' },
-    { id: 'ثانوية', label: 'ثانوية عامة فما دون' },
-    { id: 'دبلوم', label: 'دبلوم' },
-    { id: 'بكالوريوس', label: 'بكالوريوس' },
-    { id: 'ماجستير', label: 'ماجستير فأعلى' },
-  ];
+  const advancedCount = [selectedQualification, selectedCity, selectedGender, selectedStatus].filter(
+    (v) => v !== 'all'
+  ).length;
 
-  const cities = [
-    { id: 'all', label: 'كافة المدن والمناطق' },
-    { id: 'الرياض', label: 'الرياض' },
-    { id: 'جدة', label: 'جدة ومكة' },
-    { id: 'الشرقية', label: 'المنطقة الشرقية' },
-    { id: 'تبوك', label: 'نيوم وتبوك' },
-    { id: 'عن بُعد', label: 'عن بُعد (من المنزل)' },
-  ];
+  const isFiltered = selectedSector !== 'all' || advancedCount > 0 || searchQuery.trim().length > 0;
 
-  const isFiltered =
-    selectedSector !== 'all' ||
-    selectedQualification !== 'all' ||
-    selectedGender !== 'all' ||
-    selectedCity !== 'all' ||
-    selectedStatus !== 'all' ||
-    searchQuery.trim().length > 0;
+  const chips: { key: string; label: string; clear: () => void }[] = [];
+  if (selectedQualification !== 'all')
+    chips.push({
+      key: 'q',
+      label: qualifications.find((x) => x.id === selectedQualification)?.label ?? selectedQualification,
+      clear: () => onQualificationChange('all'),
+    });
+  if (selectedCity !== 'all')
+    chips.push({
+      key: 'c',
+      label: cities.find((x) => x.id === selectedCity)?.label ?? selectedCity,
+      clear: () => onCityChange('all'),
+    });
+  if (selectedGender !== 'all')
+    chips.push({
+      key: 'g',
+      label: genders.find((x) => x.id === selectedGender)?.label ?? selectedGender,
+      clear: () => onGenderChange('all'),
+    });
+  if (selectedStatus !== 'all')
+    chips.push({
+      key: 's',
+      label: statuses.find((x) => x.id === selectedStatus)?.label ?? selectedStatus,
+      clear: () => onStatusChange('all'),
+    });
 
   return (
-    <div className="bg-white/95 rounded-3xl border border-slate-200/80 shadow-[0_12px_35px_rgba(15,23,42,0.06)] p-4 sm:p-6 mb-10">
-      {/* Search Input Bar */}
-      <div className="relative mb-5">
-        <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-gray-400">
-          <Search className="w-5 h-5" />
+    <div className="rounded-3xl border border-line bg-white shadow-soft mb-8 overflow-hidden">
+      {/* البحث + زر التصفية */}
+      <div className="p-4 sm:p-5 flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute top-1/2 -translate-y-1/2 start-4 w-5 h-5 text-ink-400 pointer-events-none" />
+          <input
+            type="search"
+            value={searchQuery}
+            onChange={(e) => onSearchChange(e.target.value)}
+            placeholder="ابحث بمسمى الوظيفة أو الجهة أو التخصص…"
+            aria-label="بحث في الوظائف"
+            className="w-full h-12 ps-12 pe-12 rounded-2xl bg-paper border border-transparent text-[14.5px] text-ink-900 placeholder:text-ink-400 outline-none transition focus:bg-white focus:border-saffron-500 focus:ring-4 focus:ring-saffron-100"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => onSearchChange('')}
+              aria-label="مسح البحث"
+              className="absolute top-1/2 -translate-y-1/2 end-3 w-7 h-7 rounded-full bg-ink-100 hover:bg-ink-200 text-ink-600 flex items-center justify-center transition-colors"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => onSearchChange(e.target.value)}
-          placeholder="ابحث باسم الوظيفة، اسم الشركة، الوزارة، أو التخصص (مثال: أرامكو، وزارة الدفاع، محاسبة)..."
-          className="w-full pr-11 pl-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-gray-900 placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition shadow-inner"
-        />
-        {searchQuery && (
-          <button
-            onClick={() => onSearchChange('')}
-            className="absolute inset-y-0 left-0 pl-3 flex items-center text-xs text-gray-400 hover:text-gray-600"
-          >
-            مسح
-          </button>
-        )}
+
+        <button
+          type="button"
+          onClick={() => setAdvancedOpen((v) => !v)}
+          aria-expanded={advancedOpen}
+          className={`h-12 px-5 inline-flex items-center justify-center gap-2 rounded-2xl text-[14px] font-semibold transition-colors ${
+            advancedOpen || advancedCount > 0
+              ? 'bg-ink-950 text-white'
+              : 'bg-paper text-ink-800 hover:bg-paper-2'
+          }`}
+        >
+          <SlidersHorizontal className="w-4 h-4" />
+          <span>تصفية متقدمة</span>
+          {advancedCount > 0 && (
+            <span className="min-w-5 h-5 px-1 rounded-full bg-saffron-400 text-ink-950 text-[11px] font-bold flex items-center justify-center">
+              {advancedCount}
+            </span>
+          )}
+        </button>
       </div>
 
-      {/* Main Sector Pill Tabs */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-3 mb-4 scrollbar-none">
-        {sectors.map((sec) => (
-          <button
-            key={sec.id}
-            onClick={() => onSectorChange(sec.id)}
-            className={`shrink-0 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 ${
-              selectedSector === sec.id
-                ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
-                : 'bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 text-gray-700'
-            }`}
-          >
-            {sec.label}
-          </button>
-        ))}
+      {/* تبويبات القطاعات */}
+      <div className="px-4 sm:px-5 border-t border-line">
+        <div className="flex items-center gap-1 overflow-x-auto scrollbar-none -mb-px" role="tablist" aria-label="القطاعات">
+          {sectors.map((sec) => {
+            const active = selectedSector === sec.id;
+            const count = sectorCounts?.[sec.id];
+            return (
+              <button
+                key={sec.id}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                onClick={() => onSectorChange(sec.id)}
+                className={`shrink-0 relative inline-flex items-center gap-2 h-12 px-3.5 text-[14px] font-semibold transition-colors ${
+                  active ? 'text-ink-950' : 'text-ink-500 hover:text-ink-900'
+                }`}
+              >
+                {sec.label}
+                {typeof count === 'number' && (
+                  <span
+                    className={`text-[11px] font-bold h-5 min-w-5 px-1.5 rounded-full inline-flex items-center justify-center ${
+                      active ? 'bg-saffron-400 text-ink-950' : 'bg-ink-100 text-ink-500'
+                    }`}
+                  >
+                    {count}
+                  </span>
+                )}
+                {active && <span className="absolute inset-x-3 bottom-0 h-[3px] rounded-t-full bg-ink-950" />}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      {/* Dropdown Filters Row */}
-      <div className="pt-3 border-t border-gray-100 grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {/* Qualification */}
-        <div>
-          <label className="block text-[11px] font-semibold text-gray-500 mb-1">المؤهل الدراسي</label>
-          <select
-            value={selectedQualification}
-            onChange={(e) => onQualificationChange(e.target.value)}
-            className="w-full bg-gray-50 border border-gray-200 rounded-lg py-2 px-2.5 text-xs font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-          >
-            {qualifications.map((q) => (
-              <option key={q.id} value={q.id}>{q.label}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* Region */}
-        <div>
-          <label className="block text-[11px] font-semibold text-gray-500 mb-1">المنطقة / المدينة</label>
-          <select
-            value={selectedCity}
-            onChange={(e) => onCityChange(e.target.value)}
-            className="w-full bg-gray-50 border border-gray-200 rounded-lg py-2 px-2.5 text-xs font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-          >
-            {cities.map((c) => (
-              <option key={c.id} value={c.id}>{c.label}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* Gender */}
-        <div>
-          <label className="block text-[11px] font-semibold text-gray-500 mb-1">الجنس</label>
-          <select
+      {/* الفلاتر المتقدمة */}
+      {advancedOpen && (
+        <div className="px-4 sm:px-5 py-5 border-t border-line bg-paper/60 grid grid-cols-2 lg:grid-cols-4 gap-3 animate-fade-in">
+          <Select label="المؤهل الدراسي" value={selectedQualification} onChange={onQualificationChange} options={qualifications} />
+          <Select label="المنطقة" value={selectedCity} onChange={onCityChange} options={cities} />
+          <Select
+            label="الفئة"
             value={selectedGender}
-            onChange={(e) => onGenderChange(e.target.value as GenderType | 'all')}
-            className="w-full bg-gray-50 border border-gray-200 rounded-lg py-2 px-2.5 text-xs font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-          >
-            <option value="all">الكل (رجال ونساء)</option>
-            <option value="male">رجال فقط</option>
-            <option value="female">نساء فقط</option>
-          </select>
-        </div>
-
-        {/* Status */}
-        <div>
-          <label className="block text-[11px] font-semibold text-gray-500 mb-1">حالة التقديم</label>
-          <select
+            onChange={(v) => onGenderChange(v as GenderType | 'all')}
+            options={genders}
+          />
+          <Select
+            label="حالة التقديم"
             value={selectedStatus}
-            onChange={(e) => onStatusChange(e.target.value as JobStatus | 'all')}
-            className="w-full bg-gray-50 border border-gray-200 rounded-lg py-2 px-2.5 text-xs font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-          >
-            <option value="all">كافة الحالات</option>
-            <option value="active">متاح الآن للتقديم</option>
-            <option value="expiring_soon">ينتهي قريباً (عاجل)</option>
-            <option value="upcoming">يبدأ قريباً</option>
-            <option value="results">أعلنت نتائج القبول</option>
-          </select>
+            onChange={(v) => onStatusChange(v as JobStatus | 'all')}
+            options={statuses}
+          />
         </div>
-      </div>
+      )}
 
-      {/* Filter summary and reset */}
-      <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
-        <div className="flex items-center gap-2">
-          <Filter className="w-3.5 h-3.5 text-emerald-600" />
-          <span>تم العثور على <strong className="text-gray-900 font-bold">{totalCount}</strong> إعلان مطابق</span>
+      {/* ملخص النتائج */}
+      <div className="px-4 sm:px-5 py-3 border-t border-line flex flex-wrap items-center justify-between gap-3 text-[13px] text-ink-500">
+        <div className="flex flex-wrap items-center gap-2">
+          <span>
+            <strong className="text-ink-950 font-bold tabular-nums">{totalCount}</strong> إعلان
+          </span>
+          {chips.map((c) => (
+            <button
+              key={c.key}
+              type="button"
+              onClick={c.clear}
+              className="inline-flex items-center gap-1.5 h-7 ps-3 pe-2 rounded-full bg-saffron-50 ring-1 ring-saffron-200 text-saffron-700 text-[12px] font-semibold hover:bg-saffron-100 transition-colors"
+            >
+              {c.label}
+              <X className="w-3 h-3" />
+            </button>
+          ))}
         </div>
 
         {isFiltered && (
           <button
+            type="button"
             onClick={onReset}
-            className="flex items-center gap-1 text-emerald-600 hover:text-emerald-700 font-bold hover:underline"
+            className="inline-flex items-center gap-1.5 text-ink-700 hover:text-ink-950 font-semibold"
           >
-            <RotateCcw className="w-3 h-3" />
-            <span>إعادة تعيين الفلاتر</span>
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span>إعادة التعيين</span>
           </button>
         )}
       </div>

@@ -1,4 +1,5 @@
 import { Metadata } from 'next';
+import PageHeader from '@/components/PageHeader';
 import { FileText, ShieldAlert, CheckCircle, Scale } from 'lucide-react';
 
 export const metadata: Metadata = {
@@ -8,26 +9,19 @@ export const metadata: Metadata = {
 
 export default function TermsPage() {
   return (
-    <div className="py-12 bg-slate-50 min-h-screen">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
-        {/* Header */}
-        <div className="bg-white rounded-3xl border border-gray-200/90 p-6 sm:p-10 shadow-xs text-right">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-50 text-amber-800 text-xs font-bold mb-3">
-            <Scale className="w-4 h-4 text-amber-600" />
-            <span>الاتفاقية القانونية وحقوق الاستخدام</span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-gray-900 mb-2">
-            الشروط والأحكام وإخلاء المسؤولية
-          </h1>
-          <p className="text-xs sm:text-sm text-gray-500">
-            تاريخ السريان: نوفمبر 2026 | يرجى قراءة هذه الشروط بعناية قبل تصفح المنصة.
-          </p>
-        </div>
-
+    <>
+      <PageHeader
+        eyebrow="الاتفاقية القانونية وحقوق الاستخدام"
+        title="الشروط والأحكام وإخلاء المسؤولية"
+        description="تاريخ السريان: نوفمبر 2026. يرجى قراءة هذه الشروط بعناية قبل تصفح المنصة."
+        icon={Scale}
+        compact
+      />
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12">
         {/* Content sections */}
-        <div className="bg-white rounded-3xl border border-gray-200/90 p-6 sm:p-10 shadow-xs space-y-8 text-sm text-gray-700 leading-relaxed">
+        <div className="bg-white rounded-3xl border border-line p-6 sm:p-10 space-y-9 text-[15px] text-ink-700 leading-[2]">
           <section className="space-y-3">
-            <h2 className="text-lg font-black text-gray-950 flex items-center gap-2 border-r-4 border-emerald-600 pr-3">
+            <h2 className="text-lg font-black text-ink-950 flex items-center gap-2 border-s-4 border-saffron-500 ps-3">
               1. طبيعة المنصة وعملها
             </h2>
             <p>
@@ -36,14 +30,14 @@ export default function TermsPage() {
           </section>
 
           {/* Legal Disclaimer Box */}
-          <section className="space-y-3 bg-amber-50/60 p-5 rounded-2xl border border-amber-200 text-amber-950">
-            <h2 className="text-lg font-black flex items-center gap-2 text-amber-900 border-r-4 border-amber-600 pr-3">
+          <section className="space-y-3 bg-saffron-50 p-5 rounded-2xl border border-saffron-200 text-ink-900">
+            <h2 className="text-lg font-black flex items-center gap-2 text-ink-900 border-r-4 border-saffron-500 pr-3">
               2. إخلاء المسؤولية القانوني (Disclaimer)
             </h2>
             <p>
               نود التأكيد على النقاط القانونية الجوهرية التالية:
             </p>
-            <ul className="space-y-2 text-xs sm:text-sm text-amber-900 pt-1 list-disc list-inside">
+            <ul className="space-y-2 text-xs sm:text-sm text-ink-900 pt-1 list-disc list-inside">
               <li>
                 الموقع <strong>ليس جهة توظيف رسمية</strong> ولا يمثل أي وزارة، قطاع عسكري، أو شركة بشكل مباشر.
               </li>
@@ -60,7 +54,7 @@ export default function TermsPage() {
           </section>
 
           <section className="space-y-3">
-            <h2 className="text-lg font-black text-gray-950 flex items-center gap-2 border-r-4 border-emerald-600 pr-3">
+            <h2 className="text-lg font-black text-ink-950 flex items-center gap-2 border-s-4 border-saffron-500 ps-3">
               3. حقوق الملكية الفكرية
             </h2>
             <p>
@@ -69,7 +63,7 @@ export default function TermsPage() {
           </section>
 
           <section className="space-y-3">
-            <h2 className="text-lg font-black text-gray-950 flex items-center gap-2 border-r-4 border-emerald-600 pr-3">
+            <h2 className="text-lg font-black text-ink-950 flex items-center gap-2 border-s-4 border-saffron-500 ps-3">
               4. استخدام الروابط الخارجية
             </h2>
             <p>
@@ -78,7 +72,7 @@ export default function TermsPage() {
           </section>
 
           <section className="space-y-3">
-            <h2 className="text-lg font-black text-gray-950 flex items-center gap-2 border-r-4 border-emerald-600 pr-3">
+            <h2 className="text-lg font-black text-ink-950 flex items-center gap-2 border-s-4 border-saffron-500 ps-3">
               5. تعديل الشروط
             </h2>
             <p>
@@ -87,6 +81,6 @@ export default function TermsPage() {
           </section>
         </div>
       </div>
-    </div>
+    </>
   );
 }

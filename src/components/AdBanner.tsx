@@ -31,7 +31,7 @@ export default function AdBanner({
   if (publisherId) {
     return (
       <div className={`my-6 text-center overflow-hidden ${className}`}>
-        <span className="text-[10px] text-gray-400 block mb-1 font-medium">{label}</span>
+        <span className="text-[11px] text-ink-400 block mb-1.5 font-medium">{label}</span>
         <ins
           className="adsbygoogle"
           style={{ display: 'block' }}
@@ -46,11 +46,11 @@ export default function AdBanner({
 
   // Placeholder preview shown during review/before AdSense approval
   return (
-    <div className={`my-6 mx-auto max-w-4xl overflow-hidden rounded-2xl border border-dashed border-gray-300 bg-slate-50/70 p-4 text-center ${className}`}>
-      <span className="text-[10px] text-gray-400 block mb-1 font-medium">{label}</span>
-      <div className="py-6 flex flex-col items-center justify-center text-gray-400 text-xs">
-        <span className="font-bold text-gray-600 mb-0.5">مساحة إعلانية مخصصة (Google AdSense Responsive Unit)</span>
-        <span className="text-[11px] text-gray-400">ستظهر الإعلانات هنا تلقائياً فور ربط معرف الناشر الخاص بك</span>
+    <div className={`my-6 mx-auto max-w-4xl overflow-hidden rounded-2xl border border-dashed border-ink-200 bg-paper-2/60 p-4 text-center ${className}`}>
+      <span className="text-[11px] text-ink-400 block mb-1 font-medium">{label}</span>
+      <div className="py-5 flex flex-col items-center justify-center text-ink-400 text-xs">
+        <span className="font-semibold text-ink-600 mb-0.5">مساحة إعلانية (Google AdSense)</span>
+        <span className="text-[11px] text-ink-400">ستظهر الإعلانات هنا تلقائياً فور ربط معرف الناشر</span>
       </div>
     </div>
   );

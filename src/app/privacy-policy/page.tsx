@@ -1,4 +1,5 @@
 import { Metadata } from 'next';
+import PageHeader from '@/components/PageHeader';
 import { ShieldCheck, Lock, Eye, FileText, CheckCircle } from 'lucide-react';
 
 export const metadata: Metadata = {
@@ -8,26 +9,19 @@ export const metadata: Metadata = {
 
 export default function PrivacyPolicyPage() {
   return (
-    <div className="py-12 bg-slate-50 min-h-screen">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
-        {/* Header */}
-        <div className="bg-white rounded-3xl border border-gray-200/90 p-6 sm:p-10 shadow-xs text-right">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold mb-3">
-            <ShieldCheck className="w-4 h-4 text-emerald-600" />
-            <span>سياسات الخصوصية والأمان المعتمدة</span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-gray-900 mb-2">
-            سياسة الخصوصية (Privacy Policy)
-          </h1>
-          <p className="text-xs sm:text-sm text-gray-500">
-            تاريخ آخر تحديث: نوفمبر 2026 | متوافقة بالكامل مع سياسات شبكة إعلانات Google AdSense ولوائح حماية البيانات.
-          </p>
-        </div>
-
+    <>
+      <PageHeader
+        eyebrow="الخصوصية والأمان"
+        title="سياسة الخصوصية"
+        description="تاريخ آخر تحديث: نوفمبر 2026. متوافقة مع سياسات Google AdSense ولوائح حماية البيانات."
+        icon={ShieldCheck}
+        compact
+      />
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12">
         {/* Content sections */}
-        <div className="bg-white rounded-3xl border border-gray-200/90 p-6 sm:p-10 shadow-xs space-y-8 text-sm text-gray-700 leading-relaxed">
+        <div className="bg-white rounded-3xl border border-line p-6 sm:p-10 space-y-9 text-[15px] text-ink-700 leading-[2]">
           <section className="space-y-3">
-            <h2 className="text-lg font-black text-gray-950 flex items-center gap-2 border-r-4 border-emerald-600 pr-3">
+            <h2 className="text-lg font-black text-ink-950 flex items-center gap-2 border-s-4 border-saffron-500 ps-3">
               1. مقدمة ونطاق التطبيق
             </h2>
             <p>
@@ -36,7 +30,7 @@ export default function PrivacyPolicyPage() {
           </section>
 
           <section className="space-y-3">
-            <h2 className="text-lg font-black text-gray-950 flex items-center gap-2 border-r-4 border-emerald-600 pr-3">
+            <h2 className="text-lg font-black text-ink-950 flex items-center gap-2 border-s-4 border-saffron-500 ps-3">
               2. ملفات الدخول وسجلات السيرفر (Log Files)
             </h2>
             <p>
@@ -45,19 +39,19 @@ export default function PrivacyPolicyPage() {
           </section>
 
           {/* Critical section for AdSense approval */}
-          <section className="space-y-3 bg-emerald-50/50 p-5 rounded-2xl border border-emerald-100">
-            <h2 className="text-lg font-black text-emerald-950 flex items-center gap-2 border-r-4 border-emerald-600 pr-3">
+          <section className="space-y-3 bg-paper-2 p-5 rounded-2xl border border-line">
+            <h2 className="text-lg font-black text-ink-950 flex items-center gap-2 border-s-4 border-saffron-500 ps-3">
               3. ملفات تعريف الارتباط وإعلانات Google AdSense (هام)
             </h2>
             <p>
               نستخدم ملفات تعريف الارتباط (Cookies) لتخزين المعلومات المتعلقة بتفضيلات الزوار وتخصيص محتوى الموقع بناءً على نوع المتصفح أو المعلومات الأخرى التي يرسلها الزائر.
             </p>
-            <ul className="space-y-2 text-xs sm:text-sm text-gray-800 pt-2 list-disc list-inside">
+            <ul className="space-y-2 text-xs sm:text-sm text-ink-800 pt-2 list-disc list-inside">
               <li>
                 <strong>Google كبائع لطرف ثالث:</strong> تستخدم شركة Google ملفات تعريف الارتباط (مثل ملف تعريف الارتباط <strong>DART</strong>) لخدمة الإعلانات على موقعنا بناءً على زياراتك السابقة لهذا الموقع أو لمواقع أخرى على الويب.
               </li>
               <li>
-                يمكن للمستخدمين إلغاء الاشتراك في استخدام ملف تعريف الارتباط DART لخدمة الإعلانات القائمة على الاهتمامات من خلال زيارة <a href="https://policies.google.com/technologies/ads" target="_blank" rel="noopener noreferrer" className="text-emerald-700 font-bold underline">سياسة الخصوصية الخاصة بإعلانات Google وشبكة المحتوى</a>.
+                يمكن للمستخدمين إلغاء الاشتراك في استخدام ملف تعريف الارتباط DART لخدمة الإعلانات القائمة على الاهتمامات من خلال زيارة <a href="https://policies.google.com/technologies/ads" target="_blank" rel="noopener noreferrer" className="text-saffron-700 font-bold underline">سياسة الخصوصية الخاصة بإعلانات Google وشبكة المحتوى</a>.
               </li>
               <li>
                 قد يستخدم شركاؤنا الإعلانيون من الأطراف الثالثة تقنيات مثل ملفات تعريف الارتباط، جافا سكريبت، أو إشارات الويب لقياس فاعلية إعلاناتهم وتخصيص المحتوى الإعلاني الذي تراه.
@@ -69,7 +63,7 @@ export default function PrivacyPolicyPage() {
           </section>
 
           <section className="space-y-3">
-            <h2 className="text-lg font-black text-gray-950 flex items-center gap-2 border-r-4 border-emerald-600 pr-3">
+            <h2 className="text-lg font-black text-ink-950 flex items-center gap-2 border-s-4 border-saffron-500 ps-3">
               4. الروابط الخارجية ومواقع التوظيف الرسمية
             </h2>
             <p>
@@ -78,7 +72,7 @@ export default function PrivacyPolicyPage() {
           </section>
 
           <section className="space-y-3">
-            <h2 className="text-lg font-black text-gray-950 flex items-center gap-2 border-r-4 border-emerald-600 pr-3">
+            <h2 className="text-lg font-black text-ink-950 flex items-center gap-2 border-s-4 border-saffron-500 ps-3">
               5. خصوصية الأطفال
             </h2>
             <p>
@@ -87,7 +81,7 @@ export default function PrivacyPolicyPage() {
           </section>
 
           <section className="space-y-3">
-            <h2 className="text-lg font-black text-gray-950 flex items-center gap-2 border-r-4 border-emerald-600 pr-3">
+            <h2 className="text-lg font-black text-ink-950 flex items-center gap-2 border-s-4 border-saffron-500 ps-3">
               6. الموافقة والتحديثات
             </h2>
             <p>
@@ -96,6 +90,6 @@ export default function PrivacyPolicyPage() {
           </section>
         </div>
       </div>
-    </div>
+    </>
   );
 }
