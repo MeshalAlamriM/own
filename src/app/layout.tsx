@@ -1,18 +1,18 @@
 import type { Metadata, Viewport } from 'next';
-import { Cairo } from 'next/font/google';
+import { IBM_Plex_Sans_Arabic } from 'next/font/google';
 import './globals.css';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 
-const cairo = Cairo({
+const plex = IBM_Plex_Sans_Arabic({
   subsets: ['arabic', 'latin'],
-  weight: ['400', '500', '600', '700', '800', '900'],
-  variable: '--font-cairo',
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-plex',
   display: 'swap',
 });
 
 export const viewport: Viewport = {
-  themeColor: '#059669',
+  themeColor: '#0b0e17',
   width: 'device-width',
   initialScale: 1,
 };
@@ -91,8 +91,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="ar" dir="rtl" className={cairo.variable}>
-      <body className="min-h-screen flex flex-col font-sans bg-slate-50 text-slate-900 selection:bg-emerald-200 selection:text-emerald-900">
+    <html lang="ar" dir="rtl" className={plex.variable}>
+      <body className="min-h-screen flex flex-col font-sans bg-paper text-ink-900">
         <Header />
         <main className="flex-1">
           {children}
