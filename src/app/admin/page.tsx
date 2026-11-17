@@ -37,7 +37,14 @@ export default function AdminPage() {
 
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
+  const [dashboardStats, setDashboardStats] = useState<{ totalViews?: number; expiringSoon?: number; topViewed?: { id: string; slug: string; title: string; viewsCount: number }[] }>({});
   const [search, setSearch] = useState('');
+  const [filterSector, setFilterSector] = useState<'all' | JobSector>('all');
+  const [filterStatus, setFilterStatus] = useState<'all' | JobStatus>('all');
+  const [filterCity, setFilterCity] = useState('');
+  const [sortBy, setSortBy] = useState<'newest' | 'views'>('newest');
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
 
   // Form Modal State
   const [modalOpen, setModalOpen] = useState(false);
@@ -58,6 +65,8 @@ export default function AdminPage() {
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
   const [telegramChannelId, setTelegramChannelId] = useState('');
   const [autoPublishTelegram, setAutoPublishTelegram] = useState(false);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
 
   // Form fields
   const [formData, setFormData] = useState({
@@ -129,6 +138,9 @@ export default function AdminPage() {
       .then(res => res.json())
       .then(data => setIsAuthenticated(Boolean(data.authenticated)))
       .catch(() => setIsAuthenticated(false));
+    fetch('/api/stats').then(res => res.json()).then(data => {
+      if (data.success) setDashboardStats(data.data);
+    }).catch(() => undefined);
     loadJobs();
   }, []);
 
@@ -161,6 +173,7 @@ export default function AdminPage() {
 
   const openAddModal = () => {
     setEditingJob(null);
+    setLogoFile(null);
     setFormData({
       title: '',
       company: '',
@@ -191,6 +204,7 @@ export default function AdminPage() {
 
   const openEditModal = (job: Job) => {
     setEditingJob(job);
+    setLogoFile(null);
     setFormData({
       title: job.title,
       company: job.company,
@@ -236,8 +250,21 @@ export default function AdminPage() {
     if (formData.gender === 'male') genderLabel = 'رجال فقط';
     if (formData.gender === 'female') genderLabel = 'نساء فقط';
 
-    const payload = {
+    try {
+      let companyLogo = formData.companyLogo;
+    if (logoFile) {
+      setUploadingLogo(true);
+      const uploadData = new FormData();
+      uploadData.append('file', logoFile);
+      const uploadRes = await fetch('/api/admin/upload-logo', { method: 'POST', body: uploadData });
+      const result = await uploadRes.json().catch(() => ({}));
+      setUploadingLogo(false);
+      if (!uploadRes.ok || !result.success) throw new Error(result.error || 'فشل رفع الشعار');
+      companyLogo = result.url;
+    }
+      const payload = {
       ...formData,
+      companyLogo,
       sectorLabel,
       genderLabel,
       qualifications: quals,
@@ -245,7 +272,6 @@ export default function AdminPage() {
       benefits: bens,
     };
 
-    try {
       let savedJob: Job | null = null;
       if (editingJob) {
         const res = await fetch(`/api/jobs/${editingJob.id}`, {
@@ -273,6 +299,7 @@ export default function AdminPage() {
 
       }
 
+      setLogoFile(null);
       await loadJobs();
       setModalOpen(false);
 
@@ -402,10 +429,17 @@ export default function AdminPage() {
     );
   }
 
-  const filtered = jobs.filter(j =>
-    j.title.toLowerCase().includes(search.toLowerCase()) ||
-    j.company.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = jobs.filter(j => {
+    const q = search.toLowerCase().trim();
+    return (!q || [j.title, j.company, j.city, j.summary].some(v => v.toLowerCase().includes(q))) &&
+      (filterSector === 'all' || j.sector === filterSector) &&
+      (filterStatus === 'all' || j.status === filterStatus) &&
+      (!filterCity || j.city.toLowerCase().includes(filterCity.toLowerCase()));
+  }).sort((a, b) => sortBy === 'views'
+    ? (b.viewsCount || 0) - (a.viewsCount || 0)
+    : new Date(b.publishDate).getTime() - new Date(a.publishDate).getTime());
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const paginatedJobs = filtered.slice((page - 1) * pageSize, page * pageSize);
 
   const currentOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://wadhaef-alyoum.sa';
 
@@ -516,6 +550,18 @@ export default function AdminPage() {
             </span>
           </div>
         </div>
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-2xs"><span className="text-xs text-gray-500 block mb-1">تنتهي خلال 7 أيام</span><span className="text-2xl font-black text-amber-600">{dashboardStats.expiringSoon ?? 0}</span></div>
+          <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-2xs"><span className="text-xs text-gray-500 block mb-1">المشاهدات السحابية</span><span className="text-2xl font-black text-violet-600">{(dashboardStats.totalViews ?? 0).toLocaleString()}</span></div>
+        </div>
+        {dashboardStats.topViewed && dashboardStats.topViewed.length > 0 && (
+          <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-2xs">
+            <h3 className="font-black text-gray-900 mb-3">الأكثر مشاهدة</h3>
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+              {dashboardStats.topViewed.map((job) => <a key={job.id} href={`/jobs/${job.slug}`} target="_blank" rel="noreferrer" className="rounded-xl bg-slate-50 p-3 text-xs hover:bg-emerald-50"><span className="block truncate font-bold">{job.title}</span><span className="text-sky-600">{job.viewsCount.toLocaleString()} مشاهدة</span></a>)}
+            </div>
+          </div>
+        )}
 
         {/* Search & Table */}
         <div className="bg-white rounded-2xl border border-gray-200 shadow-xs overflow-hidden">
@@ -530,6 +576,16 @@ export default function AdminPage() {
                 className="w-full pr-9 pl-3 py-2 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
             </div>
+            <select value={filterSector} onChange={(e) => { setFilterSector(e.target.value as 'all' | JobSector); setPage(1); }} className="px-2 py-2 text-xs bg-gray-50 border border-gray-200 rounded-lg">
+              <option value="all">كل القطاعات</option><option value="government">حكومية</option><option value="military">عسكرية</option><option value="corporate">شركات</option><option value="training">تدريب</option><option value="results">نتائج</option><option value="remote">عن بُعد</option>
+            </select>
+            <select value={filterStatus} onChange={(e) => { setFilterStatus(e.target.value as 'all' | JobStatus); setPage(1); }} className="px-2 py-2 text-xs bg-gray-50 border border-gray-200 rounded-lg">
+              <option value="all">كل الحالات</option><option value="active">متاحة</option><option value="expiring_soon">تنتهي قريبًا</option><option value="upcoming">قادمة</option><option value="results">نتائج</option><option value="expired">منتهية</option>
+            </select>
+            <input value={filterCity} onChange={(e) => { setFilterCity(e.target.value); setPage(1); }} placeholder="المدينة" className="w-20 px-2 py-2 text-xs bg-gray-50 border border-gray-200 rounded-lg" />
+            <select value={sortBy} onChange={(e) => setSortBy(e.target.value as 'newest' | 'views')} className="px-2 py-2 text-xs bg-gray-50 border border-gray-200 rounded-lg">
+              <option value="newest">الأحدث</option><option value="views">الأكثر مشاهدة</option>
+            </select>
             <span className="text-xs text-gray-500 font-medium">{filtered.length} إعلان</span>
           </div>
 
@@ -546,7 +602,7 @@ export default function AdminPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {filtered.map((job) => (
+                {paginatedJobs.map((job) => (
                   <tr key={job.id} className="hover:bg-slate-50/70 transition">
                     <td className="py-3 px-4 font-bold text-gray-900 max-w-xs truncate">
                       <a href={`/jobs/${job.slug}`} target="_blank" className="hover:text-emerald-700 flex items-center gap-1.5">
@@ -604,6 +660,13 @@ export default function AdminPage() {
                 ))}
               </tbody>
             </table>
+          </div>
+          <div className="flex items-center justify-between border-t border-gray-100 p-3 text-xs">
+            <span className="text-gray-500">صفحة {page} من {totalPages}</span>
+            <div className="flex gap-2">
+              <button disabled={page <= 1} onClick={() => setPage((value) => Math.max(1, value - 1))} className="rounded-lg border px-3 py-1.5 disabled:opacity-40">السابق</button>
+              <button disabled={page >= totalPages} onClick={() => setPage((value) => Math.min(totalPages, value + 1))} className="rounded-lg border px-3 py-1.5 disabled:opacity-40">التالي</button>
+            </div>
           </div>
         </div>
 
@@ -860,9 +923,9 @@ export default function AdminPage() {
                     />
                   </div>
 
-                  {/* Logo URL */}
+                  {/* Logo URL / Upload */}
                   <div>
-                    <label className="block font-bold text-gray-700 mb-1">رابط الشعار (صورة)</label>
+                    <label className="block font-bold text-gray-700 mb-1">رابط الشعار أو رفعه</label>
                     <input
                       type="text"
                       value={formData.companyLogo}
@@ -870,6 +933,11 @@ export default function AdminPage() {
                       placeholder="https://..."
                       className="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-xl"
                     />
+                    <label className="mt-2 flex cursor-pointer items-center justify-between gap-2 rounded-xl border border-dashed border-emerald-300 bg-emerald-50/50 p-2.5 text-[11px] font-bold text-emerald-700">
+                      <span>{logoFile ? `تم اختيار: ${logoFile.name}` : 'أو ارفع شعارًا (حتى 2MB)'}</span>
+                      <input type="file" accept="image/jpeg,image/png,image/webp,image/svg+xml" className="hidden" onChange={(e) => setLogoFile(e.target.files?.[0] || null)} />
+                      <span className="rounded-lg bg-emerald-600 px-2 py-1 text-white">اختيار</span>
+                    </label>
                   </div>
                 </div>
 

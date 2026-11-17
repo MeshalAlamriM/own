@@ -39,6 +39,7 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }: JobPageProps): Promise<Metadata> {
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://wadhaef-alyoum.sa';
   const { slug } = await params;
   const job = await getJobBySlug(slug);
 
@@ -65,7 +66,7 @@ export async function generateMetadata({ params }: JobPageProps): Promise<Metada
       title: `${job.title} - ${job.company}`,
       description: cleanDescription,
       type: 'article',
-      url: `https://wadhaef-alyoum.sa/jobs/${job.slug}`,
+      url: `${baseUrl}/jobs/${job.slug}`,
       images: [
         {
           url: job.companyLogo || 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=1200&h=630&fit=crop&q=80',
@@ -82,8 +83,9 @@ export async function generateMetadata({ params }: JobPageProps): Promise<Metada
       description: cleanDescription,
     },
     alternates: {
-      canonical: `https://wadhaef-alyoum.sa/jobs/${job.slug}`,
+      canonical: `${baseUrl}/jobs/${job.slug}`,
     },
+    robots: job.status === 'expired' ? { index: false, follow: true } : { index: true, follow: true },
   };
 }
 

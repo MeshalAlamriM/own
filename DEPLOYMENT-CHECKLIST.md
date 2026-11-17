@@ -37,3 +37,13 @@
 7. إذا استخدمت Telegram، أضف البوت كمسؤول ثم اختبر النشر من لوحة الإدارة.
 
 لا تضع أي Service Role Key أو Telegram Bot Token داخل Git أو `localStorage` أو متغير يبدأ بـ `NEXT_PUBLIC_`.
+
+## 4. شعارات الشركات
+
+رفع الشعارات يستخدم Supabase Storage في bucket باسم `company-logos`. مسار الإدارة ينشئ الـ bucket تلقائيًا عند أول رفع باستخدام Service Role Key، ويقبل JPG وPNG وWEBP وSVG حتى 2MB. إذا كان إنشاء الـ bucket مقيدًا في مشروعك، أنشئه يدويًا باسم `company-logos` واجعله Public.
+
+## 5. البحث والإحصائيات وSEO
+
+- لوحة الإدارة تحتوي بحثًا بالعنوان والجهة والمدينة والملخص، وفلاتر القطاع والحالة والمدينة، وفرزًا بالأحدث أو المشاهدات مع Pagination.
+- `/api/stats` يعيد إجمالي المشاهدات، الوظائف التي تنتهي خلال 7 أيام، وقائمة الأكثر مشاهدة.
+- `NEXT_PUBLIC_SITE_URL` يستخدم في canonical وOpen Graph وsitemap وrobots. بعد ربط الدومين، حدّث المتغير ثم نفّذ Redeploy.

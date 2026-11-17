@@ -455,7 +455,16 @@ export async function getJobStats() {
   const results = jobs.filter(j => j.sector === 'results').length;
   const training = jobs.filter(j => j.sector === 'training').length;
   const remote = jobs.filter(j => j.sector === 'remote').length;
-
+  const totalViews = jobs.reduce((sum, job) => sum + (job.viewsCount || 0), 0);
+  const expiringSoon = jobs.filter(j => j.status === 'expiring_soon' || (j.endDate && new Date(j.endDate).getTime() - Date.now() < 7 * 86400000 && new Date(j.endDate).getTime() >= Date.now())).length;
+  const bySector = jobs.reduce<Record<string, number>>((result, job) => {
+    result[job.sectorLabel] = (result[job.sectorLabel] || 0) + 1;
+    return result;
+  }, {});
+  const topViewed = [...jobs].sort((a, b) => (b.viewsCount || 0) - (a.viewsCount || 0)).slice(0, 5).map(job => ({
+    id: job.id, title: job.title, slug: job.slug, viewsCount: job.viewsCount || 0,
+  }));
+  
   return {
     total,
     active,
@@ -463,6 +472,10 @@ export async function getJobStats() {
     government,
     results,
     training,
-    remote
+    remote,
+    totalViews,
+    expiringSoon,
+    bySector,
+    topViewed
   };
 }
