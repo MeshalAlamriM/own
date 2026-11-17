@@ -28,6 +28,10 @@ import {
   Radio,
   Share2,
   Database
+  ,Download
+  ,RefreshCw
+  ,CheckSquare
+  ,Square
 } from 'lucide-react';
 
 export default function AdminPage() {
@@ -45,6 +49,9 @@ export default function AdminPage() {
   const [filterCity, setFilterCity] = useState('');
   const [sortBy, setSortBy] = useState<'newest' | 'views'>('newest');
   const [page, setPage] = useState(1);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const pageSize = 10;
 
   // Form Modal State
@@ -139,6 +146,53 @@ export default function AdminPage() {
     } catch {
       // Audit history is informational and must not block the dashboard.
     }
+  };
+
+  const refreshDashboard = async () => {
+    setRefreshing(true);
+    try {
+      const statsRequest = fetch('/api/stats').then(res => res.json());
+      await Promise.all([
+        loadJobs(),
+        loadAuditLogs(),
+        statsRequest.then(data => { if (data.success) setDashboardStats(data.data); }),
+      ]);
+      setLastUpdated(new Date());
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  const exportJobsCsv = () => {
+    const headers = ['العنوان', 'الجهة', 'القطاع', 'المدينة', 'الحالة', 'تاريخ النشر', 'تاريخ الانتهاء', 'المشاهدات', 'رابط التقديم'];
+    const rows = filtered.map(job => [job.title, job.company, job.sectorLabel, job.city, job.status, job.publishDate, job.endDate, String(job.viewsCount || 0), job.applicationUrl]);
+    const csv = '\uFEFF' + [headers, ...rows].map(row => row.map(value => `"${String(value).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `jobs-export-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const toggleSelection = (id: string) => {
+    setSelectedIds(current => current.includes(id) ? current.filter(value => value !== id) : [...current, id]);
+  };
+
+  const togglePageSelection = () => {
+    const pageIds = paginatedJobs.map(job => job.id);
+    const allSelected = pageIds.length > 0 && pageIds.every(id => selectedIds.includes(id));
+    setSelectedIds(current => allSelected ? current.filter(id => !pageIds.includes(id)) : Array.from(new Set([...current, ...pageIds])));
+  };
+
+  const deleteSelectedJobs = async () => {
+    if (!selectedIds.length || !confirm(`سيتم حذف ${selectedIds.length} إعلان نهائيًا. هل تريد المتابعة؟`)) return;
+    const results = await Promise.all(selectedIds.map(id => fetch(`/api/jobs/${id}`, { method: 'DELETE' })));
+    const failed = results.filter(result => !result.ok).length;
+    setSelectedIds([]);
+    await refreshDashboard();
+    alert(failed ? `تم حذف بعض الإعلانات، وفشل حذف ${failed}.` : 'تم حذف الإعلانات المحددة بنجاح.');
   };
 
   useEffect(() => {
@@ -474,6 +528,23 @@ export default function AdminPage() {
 
           <div className="flex items-center gap-3 flex-wrap">
             <button
+              onClick={refreshDashboard}
+              disabled={refreshing}
+              className="flex items-center gap-2 px-3.5 py-2.5 bg-white border border-gray-200 hover:border-emerald-400 text-gray-700 rounded-xl text-xs font-bold shadow-2xs transition disabled:opacity-60"
+              title="تحديث بيانات لوحة التحكم"
+            >
+              <RefreshCw className={`w-4 h-4 text-emerald-600 ${refreshing ? 'animate-spin' : ''}`} />
+              <span>{refreshing ? 'جاري التحديث' : 'تحديث'}</span>
+            </button>
+            <button
+              onClick={exportJobsCsv}
+              className="flex items-center gap-2 px-3.5 py-2.5 bg-white border border-gray-200 hover:border-violet-400 text-gray-700 rounded-xl text-xs font-bold shadow-2xs transition"
+              title="تصدير النتائج الحالية إلى CSV"
+            >
+              <Download className="w-4 h-4 text-violet-600" />
+              <span>تصدير CSV</span>
+            </button>
+            <button
               onClick={() => setSettingsModalOpen(true)}
               className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 hover:border-sky-400 text-gray-700 rounded-xl text-xs font-bold shadow-2xs hover:bg-sky-50 transition"
               title="إعدادات بوت التيليجرام"
@@ -616,11 +687,25 @@ export default function AdminPage() {
             </select>
             <span className="text-xs text-gray-500 font-medium">{filtered.length} إعلان</span>
           </div>
+          {selectedIds.length > 0 && (
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-amber-100 bg-amber-50 px-4 py-3 text-xs">
+              <span className="font-bold text-amber-900">تم تحديد {selectedIds.length} إعلان</span>
+              <div className="flex items-center gap-2">
+                <button onClick={() => setSelectedIds([])} className="rounded-lg border border-amber-200 bg-white px-3 py-1.5 font-bold text-gray-700">إلغاء التحديد</button>
+                <button onClick={deleteSelectedJobs} className="inline-flex items-center gap-1.5 rounded-lg bg-rose-600 px-3 py-1.5 font-bold text-white hover:bg-rose-700"><Trash2 className="w-3.5 h-3.5" /> حذف المحدد</button>
+              </div>
+            </div>
+          )}
 
           <div className="overflow-x-auto">
             <table className="w-full text-right text-xs">
               <thead className="bg-gray-50 text-gray-600 font-bold border-b border-gray-200">
                 <tr>
+                  <th className="py-3.5 px-4 w-10 text-center">
+                    <button onClick={togglePageSelection} title="تحديد وظائف الصفحة" className="text-gray-500 hover:text-emerald-600">
+                      {paginatedJobs.length > 0 && paginatedJobs.every(job => selectedIds.includes(job.id)) ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
+                    </button>
+                  </th>
                   <th className="py-3.5 px-4">الإعلان الوظيفي</th>
                   <th className="py-3.5 px-4">الجهة</th>
                   <th className="py-3.5 px-4">القطاع</th>
@@ -632,6 +717,11 @@ export default function AdminPage() {
               <tbody className="divide-y divide-gray-100">
                 {paginatedJobs.map((job) => (
                   <tr key={job.id} className="hover:bg-slate-50/70 transition">
+                    <td className="py-3 px-4 text-center">
+                      <button onClick={() => toggleSelection(job.id)} title="تحديد الإعلان" className="text-gray-400 hover:text-emerald-600">
+                        {selectedIds.includes(job.id) ? <CheckSquare className="w-4 h-4 text-emerald-600" /> : <Square className="w-4 h-4" />}
+                      </button>
+                    </td>
                     <td className="py-3 px-4 font-bold text-gray-900 max-w-xs truncate">
                       <a href={`/jobs/${job.slug}`} target="_blank" className="hover:text-emerald-700 flex items-center gap-1.5">
                         <span>{job.title}</span>
