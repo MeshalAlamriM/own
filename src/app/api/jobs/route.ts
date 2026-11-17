@@ -4,6 +4,7 @@ import { JobFilterParams, JobSector, GenderType, JobStatus } from '@/types/job';
 import { isAdminAuthenticated } from '@/lib/admin-auth';
 import { validateJobInput } from '@/lib/job-validation';
 import { recordAuditLog } from '@/lib/audit';
+import { sanitizeHtml } from '@/lib/sanitize';
 
 export async function GET(request: NextRequest) {
   try {
@@ -15,15 +16,7 @@ export async function GET(request: NextRequest) {
     const city = searchParams.get('city') || undefined;
     const status = (searchParams.get('status') as JobStatus | 'all') || undefined;
 
-    const filters: JobFilterParams = {
-      query,
-      sector,
-      qualification,
-      gender,
-      city,
-      status
-    };
-
+    const filters: JobFilterParams = { query, sector, qualification, gender, city, status };
     const jobs = await getAllJobs(filters);
     return NextResponse.json({ success: true, count: jobs.length, data: jobs });
   } catch (error) {
@@ -37,18 +30,24 @@ export async function POST(request: NextRequest) {
     if (!(await isAdminAuthenticated())) {
       return NextResponse.json({ success: false, error: 'غير مصرح لك بهذه العملية' }, { status: 401 });
     }
+
     const body = await request.json();
     const validationError = validateJobInput(body);
     if (validationError) return NextResponse.json({ success: false, error: validationError }, { status: 400 });
 
-    const created = await createJob(body);
+    const safeBody = {
+      ...body,
+      summary: typeof body.summary === 'string' ? sanitizeHtml(body.summary) : body.summary,
+      description: typeof body.description === 'string' ? sanitizeHtml(body.description) : body.description,
+    };
+    const created = await createJob(safeBody);
     await recordAuditLog('create_job', created.id, { title: created.title, company: created.company });
     return NextResponse.json({ success: true, data: created }, { status: 201 });
   } catch (error) {
     console.error('API Error creating job:', error);
     return NextResponse.json({
       success: false,
-      error: error instanceof Error ? error.message : 'حدث خطأ أثناء إنشاء الوظيفة'
+      error: error instanceof Error ? error.message : 'حدث خطأ أثناء إنشاء الوظيفة',
     }, { status: 500 });
   }
 }
