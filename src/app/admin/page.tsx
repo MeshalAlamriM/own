@@ -59,6 +59,8 @@ export default function AdminPage() {
 
   // Form Modal State
   const [modalOpen, setModalOpen] = useState(false);
+  const [savingJob, setSavingJob] = useState(false);
+  const [duplicatingJob, setDuplicatingJob] = useState(false);
   const [editingJob, setEditingJob] = useState<Job | null>(null);
 
   // Broadcast & Publishing State
@@ -296,6 +298,7 @@ export default function AdminPage() {
 
   const openAddModal = () => {
     setEditingJob(null);
+    setDuplicatingJob(false);
     setLogoFile(null);
     setFormData({
       title: '',
@@ -327,6 +330,7 @@ export default function AdminPage() {
 
   const openEditModal = (job: Job) => {
     setEditingJob(job);
+    setDuplicatingJob(false);
     setLogoFile(null);
     setFormData({
       title: job.title,
@@ -356,8 +360,17 @@ export default function AdminPage() {
     setModalOpen(true);
   };
 
+  const openDuplicateModal = (job: Job) => {
+    openEditModal(job);
+    setEditingJob(null);
+    setDuplicatingJob(true);
+    setFormData(previous => ({ ...previous, title: `${job.title} (نسخة)`, startDate: new Date().toISOString().slice(0, 10), endDate: '', status: 'active' }));
+  };
+
   const handleSaveJob = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (savingJob) return;
+    setSavingJob(true);
     const quals = formData.qualifications.split(/[,،]+/).map(q => q.trim()).filter(Boolean);
     const reqs = formData.requirements.split('\n').map(r => r.trim()).filter(Boolean);
     const bens = formData.benefits.split('\n').map(b => b.trim()).filter(Boolean);
@@ -426,6 +439,7 @@ export default function AdminPage() {
       await loadJobs();
       await loadAuditLogs();
       setModalOpen(false);
+      setDuplicatingJob(false);
 
       // Auto-publish to Telegram if option checked and settings present
       if (autoPublishTelegram && savedJob) {
@@ -436,6 +450,8 @@ export default function AdminPage() {
       }
     } catch (err) {
       alert(err instanceof Error ? err.message : 'حدث خطأ أثناء حفظ الإعلان');
+    } finally {
+      setSavingJob(false);
     }
 
   };
@@ -903,6 +919,9 @@ export default function AdminPage() {
                         >
                           <Edit className="w-4 h-4" />
                         </button>
+                        <button onClick={() => openDuplicateModal(job)} className="p-1.5 text-emerald-700 hover:bg-emerald-50 rounded-lg transition" title="نسخ الإعلان كإعلان جديد" aria-label={`نسخ الإعلان: ${job.title}`}>
+                          <Copy className="w-4 h-4" />
+                        </button>
                         <button
                           onClick={() => handleDeleteJob(job.id)}
                           className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition"
@@ -1141,10 +1160,11 @@ export default function AdminPage() {
             <div className="bg-white rounded-3xl max-w-3xl w-full p-6 sm:p-8 space-y-6 max-h-[90vh] overflow-y-auto shadow-2xl">
               <div className="flex items-center justify-between border-b border-gray-100 pb-4">
                 <h3 className="text-lg font-black text-gray-900">
-                  {editingJob ? 'تعديل الإعلان الوظيفي' : 'إضافة إعلان وظيفي جديد'}
+                  {editingJob ? 'تعديل الإعلان الوظيفي' : duplicatingJob ? 'نسخ إعلان إلى إعلان جديد' : 'إضافة إعلان وظيفي جديد'}
                 </h3>
                 <button
-                  onClick={() => setModalOpen(false)}
+                  onClick={() => { if (!savingJob) setModalOpen(false); }}
+                  disabled={savingJob}
                   className="text-gray-400 hover:text-gray-600 text-xl font-bold"
                 >
                   ✕
@@ -1399,6 +1419,7 @@ export default function AdminPage() {
                   <button
                     type="button"
                     onClick={() => setModalOpen(false)}
+                    disabled={savingJob}
                     className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl"
                   >
                     إلغاء
@@ -1406,9 +1427,10 @@ export default function AdminPage() {
 
                   <button
                     type="submit"
-                    className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-xs"
+                    disabled={savingJob}
+                    className="disabled:opacity-60 disabled:cursor-wait px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-xs"
                   >
-                    {editingJob ? 'حفظ التعديلات' : 'نشر الإعلان الآن'}
+                    {savingJob ? 'جارٍ الحفظ...' : editingJob ? 'حفظ التعديلات' : duplicatingJob ? 'نشر النسخة الجديدة' : 'نشر الإعلان الآن'}
                   </button>
                 </div>
               </form>
