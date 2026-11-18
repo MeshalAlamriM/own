@@ -1,2 +1,3 @@
-# Set NEXT_PUBLIC_SITE_URL to the canonical production origin, e.g. https://your-domain.example
-# AdSense is intentionally not enabled yet. After approval, replace this file with the exact seller line Google provides.
+# Google AdSense Authorized Digital Sellers (ads.txt)
+# Replace pub-0000000000000000 with your real AdSense Publisher ID once approved
+google.com, pub-0000000000000000, DIRECT, f08c47fec0942fa0

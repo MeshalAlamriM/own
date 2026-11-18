@@ -3,10 +3,7 @@ import { adminCookie, createAdminToken, isAdminConfigured, verifyAdminPassword }
 
 export async function POST(request: NextRequest) {
   if (!isAdminConfigured()) {
-    return NextResponse.json(
-      { success: false, error: 'يجب إعداد ADMIN_PASSWORD وADMIN_SESSION_SECRET في متغيرات البيئة' },
-      { status: 503 },
-    );
+    return NextResponse.json({ success: false, error: 'لم يتم إعداد ADMIN_PASSWORD في متغيرات البيئة' }, { status: 503 });
   }
 
   const body = await request.json().catch(() => null);

@@ -4,16 +4,18 @@ import { isAdminAuthenticated } from '@/lib/admin-auth';
 import { validateJobInput } from '@/lib/job-validation';
 import { recordAuditLog } from '@/lib/audit';
 import { deleteLogoIfUnused } from '@/lib/logo-storage';
-import { sanitizeHtml } from '@/lib/sanitize';
 
 export async function GET(
-  _request: NextRequest,
-  context: { params: Promise<{ id: string }> },
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await context.params;
     const job = await getJobById(id);
-    if (!job) return NextResponse.json({ success: false, error: 'الوظيفة غير موجودة' }, { status: 404 });
+    if (!job) {
+      return NextResponse.json({ success: false, error: 'الوظيفة غير موجودة' }, { status: 404 });
+    }
+
     return NextResponse.json({ success: true, data: job });
   } catch (error) {
     console.error('API Error fetching job:', error);
@@ -23,7 +25,7 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> },
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     if (!(await isAdminAuthenticated())) {
@@ -33,16 +35,13 @@ export async function PUT(
     const existing = await getJobById(id);
     const body = await request.json();
     const validationError = validateJobInput(body, true);
-    if (validationError) return NextResponse.json({ success: false, error: validationError }, { status: 400 });
-
-    const safePatch = {
-      ...body,
-      ...(typeof body.summary === 'string' ? { summary: sanitizeHtml(body.summary) } : {}),
-      ...(typeof body.description === 'string' ? { description: sanitizeHtml(body.description) } : {}),
-    };
-    const updated = await updateJob(id, safePatch);
-    if (!updated) return NextResponse.json({ success: false, error: 'الوظيفة غير موجودة' }, { status: 404 });
-
+    if (validationError) {
+      return NextResponse.json({ success: false, error: validationError }, { status: 400 });
+    }
+    const updated = await updateJob(id, body);
+    if (!updated) {
+      return NextResponse.json({ success: false, error: 'الوظيفة غير موجودة' }, { status: 404 });
+    }
     if (existing?.companyLogo && existing.companyLogo !== updated.companyLogo) {
       await deleteLogoIfUnused(existing.companyLogo);
     }
@@ -52,14 +51,14 @@ export async function PUT(
     console.error('API Error updating job:', error);
     return NextResponse.json({
       success: false,
-      error: error instanceof Error ? error.message : 'خطأ في تحديث الوظيفة',
+      error: error instanceof Error ? error.message : 'خطأ في تحديث الوظيفة'
     }, { status: 500 });
   }
 }
 
 export async function DELETE(
-  _request: NextRequest,
-  context: { params: Promise<{ id: string }> },
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     if (!(await isAdminAuthenticated())) {
@@ -68,8 +67,9 @@ export async function DELETE(
     const { id } = await context.params;
     const existing = await getJobById(id);
     const deleted = await deleteJob(id);
-    if (!deleted) return NextResponse.json({ success: false, error: 'الوظيفة غير موجودة أو تم حذفها مسبقاً' }, { status: 404 });
-
+    if (!deleted) {
+      return NextResponse.json({ success: false, error: 'الوظيفة غير موجودة أو تم حذفها مسبقاً' }, { status: 404 });
+    }
     await deleteLogoIfUnused(existing?.companyLogo);
     await recordAuditLog('delete_job', id, { title: existing?.title, company: existing?.company });
     return NextResponse.json({ success: true, message: 'تم حذف الإعلان بنجاح' });
@@ -77,7 +77,7 @@ export async function DELETE(
     console.error('API Error deleting job:', error);
     return NextResponse.json({
       success: false,
-      error: error instanceof Error ? error.message : 'خطأ في حذف الوظيفة',
+      error: error instanceof Error ? error.message : 'خطأ في حذف الوظيفة'
     }, { status: 500 });
   }
 }

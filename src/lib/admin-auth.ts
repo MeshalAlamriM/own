@@ -5,7 +5,7 @@ const COOKIE_NAME = 'admin_session';
 const SESSION_TTL_SECONDS = 60 * 60 * 8;
 
 function getSecret() {
-  return process.env.ADMIN_SESSION_SECRET || '';
+  return process.env.ADMIN_SESSION_SECRET || process.env.ADMIN_PASSWORD || '';
 }
 
 function sign(value: string) {
@@ -19,7 +19,7 @@ function safeEqual(left: string, right: string) {
 }
 
 export function isAdminConfigured() {
-  return Boolean(process.env.ADMIN_PASSWORD && process.env.ADMIN_SESSION_SECRET);
+  return Boolean(process.env.ADMIN_PASSWORD && getSecret());
 }
 
 export function verifyAdminPassword(password: string) {
@@ -34,8 +34,8 @@ export function createAdminToken() {
 
 export function verifyAdminToken(token: string | undefined) {
   if (!token || !getSecret()) return false;
-  const [expiresAt, signature, ...extra] = token.split('.');
-  if (!expiresAt || !signature || extra.length || !/^\d+$/.test(expiresAt)) return false;
+  const [expiresAt, signature] = token.split('.');
+  if (!expiresAt || !signature || !/^\d+$/.test(expiresAt)) return false;
   if (Number(expiresAt) < Date.now()) return false;
   return safeEqual(signature, sign(expiresAt));
 }
