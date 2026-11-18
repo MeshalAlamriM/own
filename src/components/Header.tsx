@@ -176,7 +176,7 @@ export default function Header() {
               {/* Logo */}
               <Link href="/" className="flex items-center gap-3 group shrink-0" aria-label="وظيفتك اليوم - الرئيسية">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/logo-full.png" alt="وظيفتك اليوم" className="w-[148px] sm:w-[162px] h-auto object-contain group-hover:scale-[1.02] transition-transform duration-300" />
+                <img src="/logo-full.png" alt="وظيفتك اليوم" className="w-[126px] sm:w-[142px] h-auto object-contain group-hover:scale-[1.02] transition-transform duration-300" />
               </Link>
 
               {/* Desktop nav */}
@@ -275,7 +275,7 @@ export default function Header() {
             <div className="flex items-center justify-between h-[68px] px-5 border-b border-line">
               <div className="flex items-center gap-3">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/logo-full.png" alt="وظيفتك اليوم" className="w-[145px] h-auto object-contain" />
+                <img src="/logo-full.png" alt="وظيفتك اليوم" className="w-[128px] h-auto object-contain" />
               </div>
               <button
                 type="button"
