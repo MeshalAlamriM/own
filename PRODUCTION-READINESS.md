@@ -31,3 +31,11 @@ Ads are not enabled. Do not add a placeholder publisher ID. After Google approve
 3. Test admin create, edit, and delete operations against Supabase.
 4. Confirm the production canonical origin matches `NEXT_PUBLIC_SITE_URL`.
 5. Test a real job page's JSON-LD and verify expired or results posts are not marked as open jobs.
+
+
+## Security hardening update
+- Job descriptions are rendered as sanitized text instead of raw editor HTML.
+- JSON-LD output escapes HTML-significant characters before embedding.
+- Logo uploads accept JPEG, PNG, and WEBP only and validate file signatures; SVG is rejected.
+- Admin login has a best-effort per-instance attempt limiter. Configure Vercel Firewall or a shared rate-limit store for cross-instance enforcement.
+- Baseline browser security headers are configured in `next.config.ts`.

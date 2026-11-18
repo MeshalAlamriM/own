@@ -60,8 +60,49 @@ export function saveJobsToStorage(jobs: Job[]) {
   }
 }
 
+type DbJobRow = {
+  [key: string]: unknown;
+  id: string;
+  slug: string;
+  title: string;
+  company: string;
+  company_logo?: string | null;
+  companyLogo?: string;
+  sector: Job['sector'];
+  sector_label?: string;
+  sectorLabel?: string;
+  gender: Job['gender'];
+  gender_label?: string;
+  genderLabel?: string;
+  qualifications?: unknown;
+  location: string;
+  city: string;
+  status: Job['status'];
+  start_date?: string;
+  startDate?: string;
+  end_date?: string;
+  endDate?: string;
+  publish_date?: string;
+  publishDate?: string;
+  experience: string;
+  salary?: string;
+  summary?: string;
+  description?: string;
+  requirements?: unknown;
+  benefits?: unknown;
+  application_url?: string;
+  applicationUrl?: string;
+  source_url?: string;
+  sourceUrl?: string;
+  featured?: boolean;
+  urgent?: boolean;
+  views_count?: number;
+  viewsCount?: number;
+  tags?: unknown;
+};
+
 // Convert Supabase DB row to TypeScript Job model
-function rowToJob(row: any): Job {
+function rowToJob(row: DbJobRow): Job {
   return {
     id: row.id,
     slug: row.slug,
@@ -69,23 +110,23 @@ function rowToJob(row: any): Job {
     company: row.company,
     companyLogo: row.company_logo || row.companyLogo,
     sector: row.sector,
-    sectorLabel: row.sector_label || row.sectorLabel,
+    sectorLabel: row.sector_label || row.sectorLabel || '',
     gender: row.gender,
-    genderLabel: row.gender_label || row.genderLabel,
+    genderLabel: row.gender_label || row.genderLabel || '',
     qualifications: Array.isArray(row.qualifications) ? row.qualifications : [],
     location: row.location,
     city: row.city,
     status: row.status,
-    startDate: row.start_date || row.startDate,
-    endDate: row.end_date || row.endDate,
-    publishDate: row.publish_date || row.publishDate,
+    startDate: row.start_date || row.startDate || '',
+    endDate: row.end_date || row.endDate || '',
+    publishDate: row.publish_date || row.publishDate || '',
     experience: row.experience,
     salary: row.salary,
-    summary: row.summary,
-    description: row.description,
+    summary: typeof row.summary === 'string' ? row.summary : '',
+    description: typeof row.description === 'string' ? row.description : '',
     requirements: Array.isArray(row.requirements) ? row.requirements : [],
     benefits: Array.isArray(row.benefits) ? row.benefits : [],
-    applicationUrl: row.application_url || row.applicationUrl,
+    applicationUrl: row.application_url || row.applicationUrl || '#',
     sourceUrl: row.source_url || row.sourceUrl,
     featured: Boolean(row.featured),
     urgent: Boolean(row.urgent),
@@ -228,15 +269,25 @@ export async function getJobBySlug(slug: string): Promise<Job | undefined> {
 
   if (isSupabaseConfigured && supabase) {
     try {
-      const { data, error } = await supabase
+      // Use separate equality filters instead of interpolating user-controlled
+      // route segments into PostgREST's .or() filter expression.
+      const bySlug = await supabase
         .from('jobs')
         .select('*')
-        .or(`slug.eq.${decodedSlug},id.eq.${decodedSlug}`)
+        .eq('slug', decodedSlug)
         .maybeSingle();
 
-      if (!error) {
-        return data ? rowToJob(data) : undefined;
-      }
+      if (!bySlug.error && bySlug.data) return rowToJob(bySlug.data);
+      if (bySlug.error) throw bySlug.error;
+
+      const byId = await supabase
+        .from('jobs')
+        .select('*')
+        .eq('id', decodedSlug)
+        .maybeSingle();
+
+      if (!byId.error) return byId.data ? rowToJob(byId.data) : undefined;
+      throw byId.error;
     } catch (e) {
       console.error('Supabase getJobBySlug error:', e);
     }

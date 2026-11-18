@@ -1,4 +1,5 @@
 import { Job } from '@/types/job';
+import { sanitizeHtml } from '@/lib/sanitize';
 
 export default function SchemaJobPosting({ job }: { job: Job }) {
   // Construct Schema.org JobPosting object
@@ -6,7 +7,7 @@ export default function SchemaJobPosting({ job }: { job: Job }) {
     '@context': 'https://schema.org',
     '@type': 'JobPosting',
     'title': job.title,
-    'description': job.description ? job.description.replace(/<[^>]+>/g, '') : job.summary,
+    'description': job.description ? sanitizeHtml(job.description) : job.summary,
     'datePosted': job.publishDate,
     'validThrough': `${job.endDate}T23:59:59Z`,
     'employmentType': job.sector === 'training' ? 'INTERN' : 'FULL_TIME',
@@ -43,7 +44,7 @@ export default function SchemaJobPosting({ job }: { job: Job }) {
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(schema).replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/&/g, '\\u0026') }}
     />
   );
 }

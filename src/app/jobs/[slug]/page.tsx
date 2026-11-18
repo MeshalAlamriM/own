@@ -26,6 +26,7 @@ import {
   Calendar,
 } from 'lucide-react';
 import { sectorStyle } from '@/lib/ui';
+import { sanitizeHtml } from '@/lib/sanitize';
 
 interface JobPageProps {
   params: Promise<{ slug: string }>;
@@ -52,7 +53,7 @@ export async function generateMetadata({ params }: JobPageProps): Promise<Metada
     };
   }
 
-  const cleanDescription = job.summary || job.description.replace(/<[^>]+>/g, '').slice(0, 160);
+  const cleanDescription = (job.summary || sanitizeHtml(job.description)).slice(0, 160);
 
   return {
     title: `${job.title} | ${job.company}`,
@@ -201,7 +202,7 @@ export default async function JobDetailPage({ params }: JobPageProps) {
                   <span className="w-1.5 h-6 rounded-full bg-saffron-500" />
                   تفاصيل الإعلان والشواغر
                 </h2>
-                <div className="job-prose mt-5" dangerouslySetInnerHTML={{ __html: job.description }} />
+                <div className="job-prose mt-5 whitespace-pre-wrap break-words">{sanitizeHtml(job.description)}</div>
               </div>
 
               {job.requirements && job.requirements.length > 0 && (
