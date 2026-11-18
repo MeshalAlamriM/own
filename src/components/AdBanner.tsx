@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AdPlacement, AdSettings, DEFAULT_AD_SETTINGS } from '@/lib/ad-settings';
 
 interface AdBannerProps {
@@ -12,6 +12,7 @@ interface AdBannerProps {
 export default function AdBanner({ placement, className = '', label }: AdBannerProps) {
   const [settings, setSettings] = useState<AdSettings | null>(null);
   const publisherId = process.env.NEXT_PUBLIC_ADSENSE_ID;
+  const adRef = useRef<HTMLModElement | null>(null);
 
   useEffect(() => {
     fetch('/api/settings/ads')
@@ -19,6 +20,51 @@ export default function AdBanner({ placement, className = '', label }: AdBannerP
       .then(data => setSettings(data.success ? data.data : DEFAULT_AD_SETTINGS))
       .catch(() => setSettings(DEFAULT_AD_SETTINGS));
   }, []);
+
+  useEffect(() => {
+    if (!publisherId || !settings || !settings.enabled) return;
+    if (placement === 'home' && !settings.showOnHome) return;
+    if (placement === 'job-detail' && !settings.showOnJobDetail) return;
+
+    const slotId = settings.slotId;
+    const sendEvent = (eventType: 'impression' | 'click') => {
+      fetch('/api/ads/event', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ eventType, placement, slotId, pagePath: window.location.pathname }),
+        keepalive: true,
+      }).catch(() => undefined);
+    };
+
+    const impressionKey = `ad-impression:${placement}:${slotId}:${window.location.pathname}`;
+    const element = adRef.current;
+    if (!element) return;
+
+    const markImpression = () => {
+      if (sessionStorage.getItem(impressionKey)) return;
+      sessionStorage.setItem(impressionKey, '1');
+      sendEvent('impression');
+    };
+
+    const observer = 'IntersectionObserver' in window
+      ? new IntersectionObserver(entries => {
+          if (entries.some(entry => entry.isIntersecting && entry.intersectionRatio >= 0.5)) {
+            markImpression();
+            observer?.disconnect();
+          }
+        }, { threshold: [0.5] })
+      : null;
+    observer?.observe(element);
+    if (!observer) markImpression();
+
+    // AdSense owns the iframe, so this captures only clicks the browser exposes to the host page.
+    const onClick = () => sendEvent('click');
+    element.addEventListener('click', onClick);
+    return () => {
+      observer?.disconnect();
+      element.removeEventListener('click', onClick);
+    };
+  }, [publisherId, placement, settings]);
 
   useEffect(() => {
     try {
@@ -41,6 +87,7 @@ export default function AdBanner({ placement, className = '', label }: AdBannerP
       <div className={`my-6 text-center overflow-hidden ${className}`}>
         <span className="text-[11px] text-ink-400 block mb-1.5 font-medium">{displayLabel}</span>
         <ins
+          ref={adRef}
           className="adsbygoogle"
           style={{ display: 'block' }}
           data-ad-client={publisherId}

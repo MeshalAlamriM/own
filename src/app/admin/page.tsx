@@ -33,6 +33,8 @@ import {
   ,RefreshCw
   ,CheckSquare
   ,Square
+  ,BarChart3
+  ,MousePointerClick
 } from 'lucide-react';
 
 export default function AdminPage() {
@@ -79,6 +81,8 @@ export default function AdminPage() {
   const [adSettings, setAdSettings] = useState<AdSettings>(DEFAULT_AD_SETTINGS);
   const [savingAdSettings, setSavingAdSettings] = useState(false);
   const [adSettingsMessage, setAdSettingsMessage] = useState('');
+  const [adStatsDays, setAdStatsDays] = useState<7 | 30 | 90>(30);
+  const [adStats, setAdStats] = useState<{ days: number; totals: { impressions: number; clicks: number; ctr: number }; rows: { unit: string; slotId: string; placement: string; impressions: number; clicks: number; ctr: number }[] }>({ days: 30, totals: { impressions: 0, clicks: 0, ctr: 0 }, rows: [] });
 
   // Form fields
   const [formData, setFormData] = useState({
@@ -137,6 +141,16 @@ export default function AdminPage() {
       setAdSettingsMessage(error instanceof Error ? error.message : 'تعذر حفظ الإعدادات');
     } finally {
       setSavingAdSettings(false);
+    }
+  };
+
+  const loadAdStats = async (days = adStatsDays) => {
+    try {
+      const res = await fetch(`/api/admin/ads/stats?days=${days}`);
+      const data = await res.json();
+      if (data.success) setAdStats(data.data);
+    } catch {
+      // Statistics are informational and must not block the dashboard.
     }
   };
 
@@ -238,7 +252,10 @@ export default function AdminPage() {
       .then(res => res.json())
       .then(data => {
         setIsAuthenticated(Boolean(data.authenticated));
-        if (data.authenticated) loadAdSettings();
+        if (data.authenticated) {
+          loadAdSettings();
+          loadAdStats();
+        }
       })
       .catch(() => setIsAuthenticated(false));
     fetch('/api/stats').then(res => res.json()).then(data => {
@@ -259,6 +276,7 @@ export default function AdminPage() {
       if (!res.ok || !data.success) throw new Error(data.error || 'رمز الدخول غير صحيح');
       setIsAuthenticated(true);
       loadAdSettings();
+      loadAdStats();
       setPin('');
       setPinError(false);
     }).catch(() => setPinError(true));
@@ -700,6 +718,31 @@ export default function AdminPage() {
             <p className={`text-xs font-bold ${adSettingsMessage.includes('بنجاح') ? 'text-emerald-700' : 'text-gray-500'}`}>{adSettingsMessage || 'يتطلب ظهور الإعلانات الفعلية ضبط NEXT_PUBLIC_ADSENSE_ID في Vercel.'}</p>
             <button onClick={saveAdSettings} disabled={savingAdSettings} className="rounded-xl bg-violet-600 px-5 py-2.5 text-xs font-bold text-white hover:bg-violet-700 disabled:opacity-60">{savingAdSettings ? 'جاري الحفظ...' : 'حفظ إعدادات الإعلانات'}</button>
           </div>
+        </section>
+
+        {/* Ad Analytics */}
+        <section className="bg-white rounded-2xl border border-gray-200 shadow-2xs overflow-hidden">
+          <div className="p-5 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center"><BarChart3 className="w-5 h-5" /></div>
+              <div><h2 className="font-black text-gray-900">إحصائيات الوحدات الإعلانية</h2><p className="text-xs text-gray-500 mt-0.5">ظهور ونقرات كل وحدة خلال الفترة المحددة</p></div>
+            </div>
+            <div className="flex items-center gap-2">
+              <select value={adStatsDays} onChange={e => { const days = Number(e.target.value) as 7 | 30 | 90; setAdStatsDays(days); loadAdStats(days); }} className="rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-2 text-xs font-bold">
+                <option value={7}>آخر 7 أيام</option><option value={30}>آخر 30 يومًا</option><option value={90}>آخر 90 يومًا</option>
+              </select>
+              <button onClick={() => loadAdStats()} className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-xs font-bold text-gray-700 hover:bg-gray-50"><RefreshCw className="w-3.5 h-3.5" /> تحديث</button>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-5">
+            <div className="rounded-xl bg-sky-50 p-4"><span className="text-xs text-sky-700 font-bold">مرات الظهور</span><strong className="block mt-1 text-2xl font-black text-sky-900">{adStats.totals.impressions.toLocaleString('ar-SA')}</strong></div>
+            <div className="rounded-xl bg-violet-50 p-4"><span className="text-xs text-violet-700 font-bold inline-flex items-center gap-1"><MousePointerClick className="w-3.5 h-3.5" /> النقرات الملتقطة</span><strong className="block mt-1 text-2xl font-black text-violet-900">{adStats.totals.clicks.toLocaleString('ar-SA')}</strong></div>
+            <div className="rounded-xl bg-emerald-50 p-4"><span className="text-xs text-emerald-700 font-bold">معدل التفاعل CTR</span><strong className="block mt-1 text-2xl font-black text-emerald-900">{adStats.totals.ctr.toFixed(2)}%</strong></div>
+          </div>
+          {adStats.rows.length > 0 ? (
+            <div className="overflow-x-auto px-5 pb-5"><table className="w-full min-w-[620px] text-right text-xs"><thead className="bg-gray-50 text-gray-600"><tr><th className="p-3">الوحدة / الموضع</th><th className="p-3">الظهور</th><th className="p-3">النقرات</th><th className="p-3">CTR</th></tr></thead><tbody className="divide-y divide-gray-100">{adStats.rows.map(row => <tr key={row.unit}><td className="p-3 font-bold text-gray-800"><span className="block font-mono text-[11px]">{row.slotId}</span><span className="text-gray-500">{row.placement === 'home' ? 'الرئيسية' : 'تفاصيل الوظيفة'}</span></td><td className="p-3 font-bold text-sky-700">{row.impressions.toLocaleString('ar-SA')}</td><td className="p-3 font-bold text-violet-700">{row.clicks.toLocaleString('ar-SA')}</td><td className="p-3 font-bold text-emerald-700">{row.ctr.toFixed(2)}%</td></tr>)}</tbody></table></div>
+          ) : <p className="px-5 pb-5 text-xs text-gray-500">لا توجد بيانات لهذه الفترة. ستظهر الإحصائيات بعد تشغيل الإعلانات وزيارة مواضعها.</p>}
+          <p className="border-t border-gray-100 bg-amber-50 px-5 py-3 text-[11px] leading-5 text-amber-800">ملاحظة: الظهور والنقرات هنا قياسات داخلية للتشخيص. نقرات AdSense الفعلية قد لا تصل للصفحة بسبب iframe وسياسات Google، ويظل تقرير AdSense هو المرجع النهائي للأرباح والنقرات المدفوعة.</p>
         </section>
 
         {/* Stats cards */}
