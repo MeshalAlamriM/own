@@ -35,12 +35,11 @@ const quickSearches = ['أرامكو', 'الحرس الوطني', 'ثانوية'
 function LogoMark({ className = 'w-10 h-10' }: { className?: string }) {
   return (
     <span
-      className={`relative inline-flex items-center justify-center rounded-[14px] bg-ink-950 text-saffron-400 font-bold shrink-0 overflow-hidden ${className}`}
+      className={`relative inline-flex items-center justify-center rounded-[14px] bg-paper shrink-0 overflow-hidden border border-line shadow-sm ${className}`}
       aria-hidden="true"
     >
-      <span className="absolute -top-3 -left-3 w-8 h-8 rounded-full bg-saffron-400/20 blur-md" />
-      <span className="relative text-[22px] leading-none -mt-0.5">و</span>
-      <span className="absolute bottom-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-saffron-400" />
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/logo-mark.png" alt="" className="w-full h-full object-cover" />
     </span>
   );
 }
