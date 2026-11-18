@@ -570,17 +570,28 @@ export default function AdminPage() {
     );
   }
 
+  const resetJobFilters = () => {
+    setSearch('');
+    setFilterSector('all');
+    setFilterStatus('all');
+    setFilterCity('');
+    setSortBy('newest');
+    setPage(1);
+  };
+  const hasActiveFilters = Boolean(search.trim() || filterCity.trim() || filterSector !== 'all' || filterStatus !== 'all' || sortBy !== 'newest');
+
   const filtered = jobs.filter(j => {
     const q = search.toLowerCase().trim();
-    return (!q || [j.title, j.company, j.city, j.summary].some(v => v.toLowerCase().includes(q))) &&
+    return (!q || [j.title, j.company, j.city, j.summary].some(v => (v || '').toLowerCase().includes(q))) &&
       (filterSector === 'all' || j.sector === filterSector) &&
       (filterStatus === 'all' || j.status === filterStatus) &&
-      (!filterCity || j.city.toLowerCase().includes(filterCity.toLowerCase()));
+      (!filterCity || (j.city || '').toLowerCase().includes(filterCity.toLowerCase()));
   }).sort((a, b) => sortBy === 'views'
     ? (b.viewsCount || 0) - (a.viewsCount || 0)
     : new Date(b.publishDate).getTime() - new Date(a.publishDate).getTime());
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
-  const paginatedJobs = filtered.slice((page - 1) * pageSize, page * pageSize);
+  const currentPage = Math.min(page, totalPages);
+  const paginatedJobs = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   const currentOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://wadhaef-alyoum.sa';
 
@@ -818,28 +829,33 @@ export default function AdminPage() {
 
         {/* Search & Table */}
         <div className="bg-white rounded-2xl border border-gray-200 shadow-xs overflow-hidden">
-          <div className="p-4 border-b border-gray-100 flex items-center justify-between gap-4">
-            <div className="relative flex-1 max-w-sm">
+          <div className="p-4 border-b border-gray-100 flex flex-wrap items-center gap-3">
+            <div className="relative w-full sm:flex-1 sm:min-w-56">
               <Search className="w-4 h-4 text-gray-400 absolute right-3 top-3" />
               <input
                 type="text"
                 placeholder="ابحث في الإعلانات..."
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => { setSearch(e.target.value); setPage(1); }}
                 className="w-full pr-9 pl-3 py-2 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
             </div>
-            <select value={filterSector} onChange={(e) => { setFilterSector(e.target.value as 'all' | JobSector); setPage(1); }} className="px-2 py-2 text-xs bg-gray-50 border border-gray-200 rounded-lg">
+            <select value={filterSector} onChange={(e) => { setFilterSector(e.target.value as 'all' | JobSector); setPage(1); }} className="min-w-0 flex-1 sm:flex-none px-2 py-2 text-xs bg-gray-50 border border-gray-200 rounded-lg">
               <option value="all">كل القطاعات</option><option value="government">حكومية</option><option value="military">عسكرية</option><option value="corporate">شركات</option><option value="training">تدريب</option><option value="results">نتائج</option><option value="remote">عن بُعد</option>
             </select>
-            <select value={filterStatus} onChange={(e) => { setFilterStatus(e.target.value as 'all' | JobStatus); setPage(1); }} className="px-2 py-2 text-xs bg-gray-50 border border-gray-200 rounded-lg">
+            <select value={filterStatus} onChange={(e) => { setFilterStatus(e.target.value as 'all' | JobStatus); setPage(1); }} className="min-w-0 flex-1 sm:flex-none px-2 py-2 text-xs bg-gray-50 border border-gray-200 rounded-lg">
               <option value="all">كل الحالات</option><option value="active">متاحة</option><option value="expiring_soon">تنتهي قريبًا</option><option value="upcoming">قادمة</option><option value="results">نتائج</option><option value="expired">منتهية</option>
             </select>
-            <input value={filterCity} onChange={(e) => { setFilterCity(e.target.value); setPage(1); }} placeholder="المدينة" className="w-20 px-2 py-2 text-xs bg-gray-50 border border-gray-200 rounded-lg" />
-            <select value={sortBy} onChange={(e) => setSortBy(e.target.value as 'newest' | 'views')} className="px-2 py-2 text-xs bg-gray-50 border border-gray-200 rounded-lg">
+            <input value={filterCity} onChange={(e) => { setFilterCity(e.target.value); setPage(1); }} placeholder="المدينة" aria-label="تصفية حسب المدينة" className="min-w-24 flex-1 sm:flex-none sm:w-28 px-2 py-2 text-xs bg-gray-50 border border-gray-200 rounded-lg" />
+            <select value={sortBy} onChange={(e) => { setSortBy(e.target.value as 'newest' | 'views'); setPage(1); }} className="min-w-0 flex-1 sm:flex-none px-2 py-2 text-xs bg-gray-50 border border-gray-200 rounded-lg">
               <option value="newest">الأحدث</option><option value="views">الأكثر مشاهدة</option>
             </select>
-            <span className="text-xs text-gray-500 font-medium">{filtered.length} إعلان</span>
+            {hasActiveFilters && (
+              <button type="button" onClick={resetJobFilters} className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-xs font-bold text-gray-600 hover:bg-gray-50">
+                <RotateCcw className="h-3.5 w-3.5" /> مسح الفلاتر
+              </button>
+            )}
+            <span aria-live="polite" className="text-xs text-gray-500 font-medium">{filtered.length} من {jobs.length} إعلان</span>
           </div>
           {selectedIds.length > 0 && (
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-amber-100 bg-amber-50 px-4 py-3 text-xs">
@@ -869,6 +885,13 @@ export default function AdminPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
+                {paginatedJobs.length === 0 && (
+                  <tr><td colSpan={7} className="px-4 py-12 text-center">
+                    <Search className="mx-auto mb-3 h-7 w-7 text-gray-300" />
+                    <p className="font-bold text-gray-700">{jobs.length === 0 ? 'لا توجد إعلانات وظيفية حتى الآن' : 'لا توجد نتائج مطابقة للبحث'}</p>
+                    {hasActiveFilters && <button type="button" onClick={resetJobFilters} className="mt-3 text-xs font-bold text-emerald-700 hover:underline">إظهار جميع الوظائف</button>}
+                  </td></tr>
+                )}
                 {paginatedJobs.map((job) => (
                   <tr key={job.id} className="hover:bg-slate-50/70 transition">
                     <td className="py-3 px-4 text-center">
@@ -937,10 +960,10 @@ export default function AdminPage() {
             </table>
           </div>
           <div className="flex items-center justify-between border-t border-gray-100 p-3 text-xs">
-            <span className="text-gray-500">صفحة {page} من {totalPages}</span>
+            <span className="text-gray-500">صفحة {currentPage} من {totalPages}</span>
             <div className="flex gap-2">
-              <button disabled={page <= 1} onClick={() => setPage((value) => Math.max(1, value - 1))} className="rounded-lg border px-3 py-1.5 disabled:opacity-40">السابق</button>
-              <button disabled={page >= totalPages} onClick={() => setPage((value) => Math.min(totalPages, value + 1))} className="rounded-lg border px-3 py-1.5 disabled:opacity-40">التالي</button>
+              <button disabled={currentPage <= 1} onClick={() => setPage((value) => Math.max(1, value - 1))} className="rounded-lg border px-3 py-1.5 disabled:opacity-40">السابق</button>
+              <button disabled={currentPage >= totalPages} onClick={() => setPage((value) => Math.min(totalPages, value + 1))} className="rounded-lg border px-3 py-1.5 disabled:opacity-40">التالي</button>
             </div>
           </div>
         </div>
