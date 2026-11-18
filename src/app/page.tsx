@@ -384,7 +384,7 @@ export default async function HomePage() {
           </section>
         )}
 
-        <AdBanner label="إعلان" />
+        <AdBanner placement="home" label="إعلان" />
 
         <TelegramBanner />
 

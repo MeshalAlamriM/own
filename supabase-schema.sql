@@ -82,3 +82,14 @@ CREATE INDEX IF NOT EXISTS admin_audit_logs_created_at_idx ON public.admin_audit
 CREATE INDEX IF NOT EXISTS admin_audit_logs_action_idx ON public.admin_audit_logs (action);
 CREATE INDEX IF NOT EXISTS admin_audit_logs_resource_idx ON public.admin_audit_logs (resource_id);
 -- No anon/authenticated policies: audit logs are private and server-written.
+
+-- Persistent site settings managed by the admin dashboard.
+CREATE TABLE IF NOT EXISTS public.site_settings (
+  key TEXT PRIMARY KEY,
+  value JSONB NOT NULL DEFAULT '{}'::jsonb,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE public.site_settings ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Public site settings read" ON public.site_settings;
+-- Settings are read through the server API; no public table policy is needed.

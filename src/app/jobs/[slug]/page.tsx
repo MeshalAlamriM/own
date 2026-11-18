@@ -239,7 +239,7 @@ export default async function JobDetailPage({ params }: JobPageProps) {
               )}
             </article>
 
-            <AdBanner label="إعلان" />
+            <AdBanner placement="job-detail" label="إعلان" />
 
             <ShareButtons title={job.title} />
 

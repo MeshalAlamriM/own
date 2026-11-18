@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Job, JobSector, GenderType, JobStatus } from '@/types/job';
 import { formatTelegramMessage, formatWhatsAppMessage } from '@/lib/broadcast';
+import { AdSettings, DEFAULT_AD_SETTINGS } from '@/lib/ad-settings';
 import {
   PlusCircle,
   Trash2,
@@ -75,6 +76,9 @@ export default function AdminPage() {
   const [autoPublishTelegram, setAutoPublishTelegram] = useState(false);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [adSettings, setAdSettings] = useState<AdSettings>(DEFAULT_AD_SETTINGS);
+  const [savingAdSettings, setSavingAdSettings] = useState(false);
+  const [adSettingsMessage, setAdSettingsMessage] = useState('');
 
   // Form fields
   const [formData, setFormData] = useState({
@@ -104,6 +108,37 @@ export default function AdminPage() {
   });
 
   const [seeding, setSeeding] = useState(false);
+
+  const loadAdSettings = async () => {
+    try {
+      const res = await fetch('/api/admin/settings/ads');
+      const data = await res.json();
+      if (data.success) setAdSettings(data.data);
+    } catch {
+      // Keep the safe defaults if the settings request is unavailable.
+    }
+  };
+
+  const saveAdSettings = async () => {
+    setSavingAdSettings(true);
+    setAdSettingsMessage('');
+    try {
+      const res = await fetch('/api/admin/settings/ads', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(adSettings),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'تعذر حفظ إعدادات الإعلانات');
+      setAdSettings(data.data);
+      setAdSettingsMessage('تم حفظ إعدادات الإعلانات بنجاح');
+      await loadAuditLogs();
+    } catch (error) {
+      setAdSettingsMessage(error instanceof Error ? error.message : 'تعذر حفظ الإعدادات');
+    } finally {
+      setSavingAdSettings(false);
+    }
+  };
 
   const handleSeedJobs = async () => {
     try {
@@ -201,7 +236,10 @@ export default function AdminPage() {
     setTelegramChannelId(savedChannel);
     fetch('/api/admin/session')
       .then(res => res.json())
-      .then(data => setIsAuthenticated(Boolean(data.authenticated)))
+      .then(data => {
+        setIsAuthenticated(Boolean(data.authenticated));
+        if (data.authenticated) loadAdSettings();
+      })
       .catch(() => setIsAuthenticated(false));
     fetch('/api/stats').then(res => res.json()).then(data => {
       if (data.success) setDashboardStats(data.data);
@@ -220,6 +258,7 @@ export default function AdminPage() {
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.success) throw new Error(data.error || 'رمز الدخول غير صحيح');
       setIsAuthenticated(true);
+      loadAdSettings();
       setPin('');
       setPinError(false);
     }).catch(() => setPinError(true));
@@ -606,6 +645,62 @@ export default function AdminPage() {
             تعديل بيانات القناة والبوت ←
           </button>
         </div>
+
+        {/* Ads Control Center */}
+        <section className="bg-white rounded-2xl border border-gray-200 shadow-2xs overflow-hidden">
+          <div className="p-5 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-violet-100 text-violet-700 flex items-center justify-center">
+                <Settings className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="font-black text-gray-900">إدارة الإعلانات</h2>
+                <p className="text-xs text-gray-500 mt-0.5">تحكم بظهور إعلانات AdSense من دون تعديل الكود</p>
+              </div>
+            </div>
+            <span className={`inline-flex items-center gap-1.5 self-start sm:self-auto px-3 py-1.5 rounded-full text-xs font-bold ${adSettings.enabled ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-600'}`}>
+              <span className={`w-2 h-2 rounded-full ${adSettings.enabled ? 'bg-emerald-500' : 'bg-gray-400'}`} />
+              {adSettings.enabled ? 'الإعلانات مفعلة' : 'الإعلانات متوقفة'}
+            </span>
+          </div>
+          <div className="p-5 grid gap-5 lg:grid-cols-[1fr_1fr]">
+            <div className="space-y-4">
+              <label className="flex items-center justify-between gap-4 rounded-xl border border-gray-200 bg-gray-50 p-3 cursor-pointer">
+                <span><strong className="block text-sm text-gray-800">تفعيل الإعلانات</strong><span className="text-[11px] text-gray-500">إظهار أو إخفاء جميع الوحدات الإعلانية</span></span>
+                <input type="checkbox" checked={adSettings.enabled} onChange={e => setAdSettings({ ...adSettings, enabled: e.target.checked })} className="h-5 w-5 accent-emerald-600" />
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <label className="flex items-center gap-2 rounded-xl border border-gray-200 p-3 cursor-pointer text-xs font-bold text-gray-700">
+                  <input type="checkbox" checked={adSettings.showOnHome} onChange={e => setAdSettings({ ...adSettings, showOnHome: e.target.checked })} className="h-4 w-4 accent-emerald-600" />
+                  الرئيسية
+                </label>
+                <label className="flex items-center gap-2 rounded-xl border border-gray-200 p-3 cursor-pointer text-xs font-bold text-gray-700">
+                  <input type="checkbox" checked={adSettings.showOnJobDetail} onChange={e => setAdSettings({ ...adSettings, showOnJobDetail: e.target.checked })} className="h-4 w-4 accent-emerald-600" />
+                  تفاصيل الوظيفة
+                </label>
+              </div>
+            </div>
+            <div className="space-y-3">
+              <label className="block text-xs font-bold text-gray-700">رقم الوحدة الإعلانية (Ad Slot)
+                <input value={adSettings.slotId} onChange={e => setAdSettings({ ...adSettings, slotId: e.target.value })} placeholder="مثال: 1234567890" className="mt-1.5 w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-xs font-mono focus:bg-white focus:outline-none focus:ring-2 focus:ring-violet-500" />
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <label className="block text-xs font-bold text-gray-700">نوع العرض
+                  <select value={adSettings.format} onChange={e => setAdSettings({ ...adSettings, format: e.target.value as AdSettings['format'] })} className="mt-1.5 w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-xs">
+                    <option value="auto">متجاوب تلقائيًا</option><option value="fluid">Fluid</option><option value="rectangle">مستطيل</option>
+                  </select>
+                </label>
+                <label className="block text-xs font-bold text-gray-700">النص فوق الإعلان
+                  <input value={adSettings.label} onChange={e => setAdSettings({ ...adSettings, label: e.target.value })} className="mt-1.5 w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-xs" />
+                </label>
+              </div>
+            </div>
+          </div>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-gray-100 bg-gray-50/70 px-5 py-3">
+            <p className={`text-xs font-bold ${adSettingsMessage.includes('بنجاح') ? 'text-emerald-700' : 'text-gray-500'}`}>{adSettingsMessage || 'يتطلب ظهور الإعلانات الفعلية ضبط NEXT_PUBLIC_ADSENSE_ID في Vercel.'}</p>
+            <button onClick={saveAdSettings} disabled={savingAdSettings} className="rounded-xl bg-violet-600 px-5 py-2.5 text-xs font-bold text-white hover:bg-violet-700 disabled:opacity-60">{savingAdSettings ? 'جاري الحفظ...' : 'حفظ إعدادات الإعلانات'}</button>
+          </div>
+        </section>
 
         {/* Stats cards */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
