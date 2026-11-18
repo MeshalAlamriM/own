@@ -32,18 +32,6 @@ const navLinks = [
 
 const quickSearches = ['أرامكو', 'الحرس الوطني', 'ثانوية', 'نسائية', 'الرياض', 'جدارات'];
 
-function LogoMark({ className = 'w-10 h-10' }: { className?: string }) {
-  return (
-    <span
-      className={`relative inline-flex items-center justify-center rounded-[14px] bg-paper shrink-0 overflow-hidden border border-line shadow-sm ${className}`}
-      aria-hidden="true"
-    >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/logo-mark.png" alt="" className="w-full h-full object-cover" />
-    </span>
-  );
-}
-
 export default function Header() {
   const pathname = usePathname();
   const router = useRouter();
@@ -187,15 +175,8 @@ export default function Header() {
             <div className="flex items-center justify-between gap-4 h-[68px]">
               {/* Logo */}
               <Link href="/" className="flex items-center gap-3 group shrink-0" aria-label="وظيفتك اليوم - الرئيسية">
-                <LogoMark className="w-11 h-11 group-hover:rotate-[-6deg] transition-transform duration-300" />
-                <span className="leading-none">
-                  <span className="block text-[19px] font-bold text-ink-950 tracking-tight">
-                    وظيفتك <span className="text-saffron-600">اليوم</span>
-                  </span>
-                  <span className="block text-[11px] text-ink-500 mt-1.5 font-medium">
-                    وظائف · تدريب · نتائج قبول
-                  </span>
-                </span>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/logo-full.png" alt="وظيفتك اليوم" className="w-[148px] sm:w-[162px] h-auto object-contain group-hover:scale-[1.02] transition-transform duration-300" />
               </Link>
 
               {/* Desktop nav */}
@@ -293,10 +274,8 @@ export default function Header() {
           <div className="absolute top-0 bottom-0 right-0 w-[86%] max-w-sm bg-paper shadow-2xl flex flex-col animate-slide-down">
             <div className="flex items-center justify-between h-[68px] px-5 border-b border-line">
               <div className="flex items-center gap-3">
-                <LogoMark className="w-10 h-10" />
-                <span className="text-[17px] font-bold text-ink-950">
-                  وظيفتك <span className="text-saffron-600">اليوم</span>
-                </span>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/logo-full.png" alt="وظيفتك اليوم" className="w-[145px] h-auto object-contain" />
               </div>
               <button
                 type="button"
