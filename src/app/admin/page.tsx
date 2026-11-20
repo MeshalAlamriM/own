@@ -13,6 +13,10 @@ import {
 import { AdSettings, DEFAULT_AD_SETTINGS } from '@/lib/ad-settings';
 import { DEFAULT_SOCIAL_SETTINGS, SocialSettings } from '@/lib/social-settings';
 import {
+  DEFAULT_HOME_STATS_SETTINGS,
+  HomeStatsSettings,
+} from '@/lib/home-stats-settings';
+import {
   PlusCircle,
   Trash2,
   Edit,
@@ -221,6 +225,9 @@ export default function AdminPage() {
   const [socialSettings, setSocialSettings] = useState<SocialSettings>(DEFAULT_SOCIAL_SETTINGS);
   const [savingSocialSettings, setSavingSocialSettings] = useState(false);
   const [socialSettingsMessage, setSocialSettingsMessage] = useState('');
+  const [homeStatsSettings, setHomeStatsSettings] = useState<HomeStatsSettings>(DEFAULT_HOME_STATS_SETTINGS);
+  const [savingHomeStatsSettings, setSavingHomeStatsSettings] = useState(false);
+  const [homeStatsSettingsMessage, setHomeStatsSettingsMessage] = useState('');
 
   // Dedicated Broadcast Hub selected job
   const [hubSelectedJobId, setHubSelectedJobId] = useState<string>('');
@@ -356,6 +363,37 @@ export default function AdminPage() {
       if (data.success) setSocialSettings(data.data);
     } catch {
       // Safe defaults
+    }
+  };
+
+  const loadHomeStatsSettings = async () => {
+    try {
+      const res = await fetch('/api/admin/settings/home-stats');
+      const data = await res.json();
+      if (data.success) setHomeStatsSettings(data.data);
+    } catch {
+      // Safe defaults
+    }
+  };
+
+  const saveHomeStatsSettings = async () => {
+    setSavingHomeStatsSettings(true);
+    setHomeStatsSettingsMessage('');
+    try {
+      const res = await fetch('/api/admin/settings/home-stats', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(homeStatsSettings),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'تعذر حفظ إعدادات الإحصاءات');
+      setHomeStatsSettings(data.data);
+      setHomeStatsSettingsMessage('تم حفظ ظهور أجزاء الإحصاءات بنجاح');
+      await loadAuditLogs();
+    } catch (error) {
+      setHomeStatsSettingsMessage(error instanceof Error ? error.message : 'تعذر حفظ الإعدادات');
+    } finally {
+      setSavingHomeStatsSettings(false);
     }
   };
 
@@ -528,6 +566,7 @@ export default function AdminPage() {
           loadAdSettings();
           loadAdStats();
           loadSocialSettings();
+          loadHomeStatsSettings();
         }
       })
       .catch(() => setIsAuthenticated(false));
@@ -904,7 +943,7 @@ export default function AdminPage() {
   const currentPage = Math.min(page, totalPages);
   const paginatedJobs = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
-  const currentOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://wadhaef-alyoum.sa';
+  const currentOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://www.job2sa.com';
 
   // Sector breakdown stats for Charts
   const sectorCounts = useMemo(() => {
@@ -1065,11 +1104,10 @@ export default function AdminPage() {
           <nav className="flex space-x-2 space-x-reverse overflow-x-auto scrollbar-none py-1 border-t border-line/40 text-xs">
             <button
               onClick={() => setActiveTab('jobs')}
-              className={`flex items-center gap-2 py-2.5 px-4 font-bold border-b-2 transition whitespace-nowrap ${
-                activeTab === 'jobs'
-                  ? 'border-saffron-500 text-ink-950 font-black'
-                  : 'border-transparent text-ink-500 hover:text-ink-900 hover:bg-paper-2/50 rounded-t-lg'
-              }`}
+              className={`flex items-center gap-2 py-2.5 px-4 font-bold border-b-2 transition whitespace-nowrap ${activeTab === 'jobs'
+                ? 'border-saffron-500 text-ink-950 font-black'
+                : 'border-transparent text-ink-500 hover:text-ink-900 hover:bg-paper-2/50 rounded-t-lg'
+                }`}
             >
               <FileText className="w-4 h-4" />
               <span>إدارة الإعلانات</span>
@@ -1080,11 +1118,10 @@ export default function AdminPage() {
 
             <button
               onClick={() => setActiveTab('analytics')}
-              className={`flex items-center gap-2 py-2.5 px-4 font-bold border-b-2 transition whitespace-nowrap ${
-                activeTab === 'analytics'
-                  ? 'border-saffron-500 text-ink-950 font-black'
-                  : 'border-transparent text-ink-500 hover:text-ink-900 hover:bg-paper-2/50 rounded-t-lg'
-              }`}
+              className={`flex items-center gap-2 py-2.5 px-4 font-bold border-b-2 transition whitespace-nowrap ${activeTab === 'analytics'
+                ? 'border-saffron-500 text-ink-950 font-black'
+                : 'border-transparent text-ink-500 hover:text-ink-900 hover:bg-paper-2/50 rounded-t-lg'
+                }`}
             >
               <BarChart3 className="w-4 h-4" />
               <span>الإحصاءات والتحليلات</span>
@@ -1092,11 +1129,10 @@ export default function AdminPage() {
 
             <button
               onClick={() => setActiveTab('broadcast')}
-              className={`flex items-center gap-2 py-2.5 px-4 font-bold border-b-2 transition whitespace-nowrap ${
-                activeTab === 'broadcast'
-                  ? 'border-saffron-500 text-ink-950 font-black'
-                  : 'border-transparent text-ink-500 hover:text-ink-900 hover:bg-paper-2/50 rounded-t-lg'
-              }`}
+              className={`flex items-center gap-2 py-2.5 px-4 font-bold border-b-2 transition whitespace-nowrap ${activeTab === 'broadcast'
+                ? 'border-saffron-500 text-ink-950 font-black'
+                : 'border-transparent text-ink-500 hover:text-ink-900 hover:bg-paper-2/50 rounded-t-lg'
+                }`}
             >
               <Send className="w-4 h-4 text-sky-600" />
               <span>مركز النشر والبث والصيغ</span>
@@ -1105,18 +1141,16 @@ export default function AdminPage() {
 
             <button
               onClick={() => setActiveTab('ads')}
-              className={`flex items-center gap-2 py-2.5 px-4 font-bold border-b-2 transition whitespace-nowrap ${
-                activeTab === 'ads'
-                  ? 'border-saffron-500 text-ink-950 font-black'
-                  : 'border-transparent text-ink-500 hover:text-ink-900 hover:bg-paper-2/50 rounded-t-lg'
-              }`}
+              className={`flex items-center gap-2 py-2.5 px-4 font-bold border-b-2 transition whitespace-nowrap ${activeTab === 'ads'
+                ? 'border-saffron-500 text-ink-950 font-black'
+                : 'border-transparent text-ink-500 hover:text-ink-900 hover:bg-paper-2/50 rounded-t-lg'
+                }`}
             >
               <Sliders className="w-4 h-4 text-amber-600" />
               <span>مواضع إعلانات AdSense</span>
               <span
-                className={`px-1.5 py-0.5 rounded-full text-[10px] ${
-                  adSettings.enabled ? 'bg-emerald-50 text-emerald-700' : 'bg-ink-100 text-ink-600'
-                }`}
+                className={`px-1.5 py-0.5 rounded-full text-[10px] ${adSettings.enabled ? 'bg-emerald-50 text-emerald-700' : 'bg-ink-100 text-ink-600'
+                  }`}
               >
                 {adSettings.enabled ? 'مفعلة' : 'متوقفة'}
               </span>
@@ -1124,11 +1158,10 @@ export default function AdminPage() {
 
             <button
               onClick={() => setActiveTab('social')}
-              className={`flex items-center gap-2 py-2.5 px-4 font-bold border-b-2 transition whitespace-nowrap ${
-                activeTab === 'social'
-                  ? 'border-saffron-500 text-ink-950 font-black'
-                  : 'border-transparent text-ink-500 hover:text-ink-900 hover:bg-paper-2/50 rounded-t-lg'
-              }`}
+              className={`flex items-center gap-2 py-2.5 px-4 font-bold border-b-2 transition whitespace-nowrap ${activeTab === 'social'
+                ? 'border-saffron-500 text-ink-950 font-black'
+                : 'border-transparent text-ink-500 hover:text-ink-900 hover:bg-paper-2/50 rounded-t-lg'
+                }`}
             >
               <Share2 className="w-4 h-4 text-emerald-600" />
               <span>حسابات التواصل</span>
@@ -1136,11 +1169,10 @@ export default function AdminPage() {
 
             <button
               onClick={() => setActiveTab('maintenance')}
-              className={`flex items-center gap-2 py-2.5 px-4 font-bold border-b-2 transition whitespace-nowrap ${
-                activeTab === 'maintenance'
-                  ? 'border-saffron-500 text-ink-950 font-black'
-                  : 'border-transparent text-ink-500 hover:text-ink-900 hover:bg-paper-2/50 rounded-t-lg'
-              }`}
+              className={`flex items-center gap-2 py-2.5 px-4 font-bold border-b-2 transition whitespace-nowrap ${activeTab === 'maintenance'
+                ? 'border-saffron-500 text-ink-950 font-black'
+                : 'border-transparent text-ink-500 hover:text-ink-900 hover:bg-paper-2/50 rounded-t-lg'
+                }`}
             >
               <ShieldCheck className="w-4 h-4 text-indigo-600" />
               <span>السجل والصيانة</span>
@@ -1203,11 +1235,10 @@ export default function AdminPage() {
                     setFilterSector(s.key as 'all' | JobSector);
                     setPage(1);
                   }}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap ${
-                    filterSector === s.key
-                      ? 'bg-ink-950 text-white shadow-soft'
-                      : 'bg-white border border-line text-ink-700 hover:bg-paper-2'
-                  }`}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap ${filterSector === s.key
+                    ? 'bg-ink-950 text-white shadow-soft'
+                    : 'bg-white border border-line text-ink-700 hover:bg-paper-2'
+                    }`}
                 >
                   {s.label}
                 </button>
@@ -1430,15 +1461,14 @@ export default function AdminPage() {
                             value={job.status}
                             disabled={updatingStatusId === job.id}
                             onChange={(e) => handleQuickStatusChange(job.id, e.target.value as JobStatus)}
-                            className={`px-2 py-1 rounded-lg text-[11px] font-bold border transition cursor-pointer ${
-                              job.status === 'active'
-                                ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                                : job.status === 'expiring_soon'
+                            className={`px-2 py-1 rounded-lg text-[11px] font-bold border transition cursor-pointer ${job.status === 'active'
+                              ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                              : job.status === 'expiring_soon'
                                 ? 'bg-amber-50 text-amber-800 border-amber-200'
                                 : job.status === 'results'
-                                ? 'bg-rose-50 text-rose-800 border-rose-200'
-                                : 'bg-ink-100 text-ink-700 border-ink-200'
-                            }`}
+                                  ? 'bg-rose-50 text-rose-800 border-rose-200'
+                                  : 'bg-ink-100 text-ink-700 border-ink-200'
+                              }`}
                           >
                             <option value="active">متاح الآن</option>
                             <option value="expiring_soon">ينتهي قريباً</option>
@@ -1530,6 +1560,58 @@ export default function AdminPage() {
         {/* ========================================================================= */}
         {activeTab === 'analytics' && (
           <div className="space-y-6">
+            <div className="bg-white rounded-2xl border border-line p-6 shadow-soft space-y-5">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-base font-black text-ink-950">تحكم أجزاء الإحصاءات في الصفحة الرئيسية</h3>
+                  <p className="text-xs text-ink-500">اختر الأجزاء الظاهرة؛ يتم ضبط عرض الأعمدة تلقائيًا حسب عدد الأجزاء المفعلة.</p>
+                </div>
+                <span className="shrink-0 px-3 py-1 rounded-xl bg-paper-2 text-xs font-bold text-ink-700">
+                  4 أجزاء
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                {[
+                  { key: 'total', label: 'إعلان في المنصة' },
+                  { key: 'active', label: 'مفتوح للتقديم الآن' },
+                  { key: 'expiringSoon', label: 'ينتهي خلال أسبوع' },
+                  { key: 'totalViews', label: 'مشاهدة للإعلانات' },
+                ].map((item) => (
+                  <label
+                    key={item.key}
+                    className="flex items-center justify-between gap-3 p-3.5 rounded-xl border border-line bg-paper/50 cursor-pointer hover:border-saffron-300 transition"
+                  >
+                    <span className="text-xs font-bold text-ink-800">{item.label}</span>
+                    <input
+                      type="checkbox"
+                      checked={homeStatsSettings[item.key as keyof HomeStatsSettings]}
+                      onChange={(e) =>
+                        setHomeStatsSettings({
+                          ...homeStatsSettings,
+                          [item.key]: e.target.checked,
+                        })
+                      }
+                      className="h-5 w-5 accent-saffron-500 rounded"
+                    />
+                  </label>
+                ))}
+              </div>
+
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-line pt-4">
+                <p className={`text-xs font-bold ${homeStatsSettingsMessage.includes('بنجاح') ? 'text-emerald-700' : 'text-ink-500'}`}>
+                  {homeStatsSettingsMessage || 'التغيير يُطبق على الصفحة الرئيسية فور حفظه.'}
+                </p>
+                <button
+                  onClick={saveHomeStatsSettings}
+                  disabled={savingHomeStatsSettings}
+                  className="rounded-xl bg-ink-950 px-5 py-2.5 text-xs font-black text-white hover:bg-ink-900 disabled:opacity-60 transition"
+                >
+                  {savingHomeStatsSettings ? 'جاري الحفظ...' : 'حفظ ظهور الإحصاءات'}
+                </button>
+              </div>
+            </div>
+
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <div className="bg-white p-5 rounded-2xl border border-line shadow-soft">
                 <span className="text-xs text-ink-500 font-bold block mb-1">المشاهدات السحابية</span>
@@ -1615,15 +1697,14 @@ export default function AdminPage() {
                       >
                         <div className="flex items-center gap-3">
                           <span
-                            className={`w-7 h-7 rounded-lg flex items-center justify-center font-black text-xs shrink-0 ${
-                              idx === 0
-                                ? 'bg-amber-400 text-ink-950'
-                                : idx === 1
+                            className={`w-7 h-7 rounded-lg flex items-center justify-center font-black text-xs shrink-0 ${idx === 0
+                              ? 'bg-amber-400 text-ink-950'
+                              : idx === 1
                                 ? 'bg-slate-300 text-ink-950'
                                 : idx === 2
-                                ? 'bg-amber-700 text-white'
-                                : 'bg-paper-2 text-ink-600'
-                            }`}
+                                  ? 'bg-amber-700 text-white'
+                                  : 'bg-paper-2 text-ink-600'
+                              }`}
                           >
                             {idx + 1}
                           </span>
@@ -1724,11 +1805,10 @@ export default function AdminPage() {
                   <div key={tmpl.id} className="relative group shrink-0">
                     <button
                       onClick={() => setSelectedTemplateId(tmpl.id)}
-                      className={`px-3.5 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap flex items-center gap-1.5 ${
-                        selectedTemplateId === tmpl.id
-                          ? 'bg-ink-950 text-white shadow-soft'
-                          : 'bg-paper-2 border border-line text-ink-700 hover:bg-line'
-                      }`}
+                      className={`px-3.5 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap flex items-center gap-1.5 ${selectedTemplateId === tmpl.id
+                        ? 'bg-ink-950 text-white shadow-soft'
+                        : 'bg-paper-2 border border-line text-ink-700 hover:bg-line'
+                        }`}
                     >
                       {selectedTemplateId === tmpl.id && <Check className="w-3.5 h-3.5 text-saffron-400" />}
                       <span>{tmpl.name}</span>
@@ -1890,11 +1970,10 @@ export default function AdminPage() {
                   <div className="flex items-center gap-2 border-b border-line pb-2">
                     <button
                       onClick={() => setBroadcastTab('telegram')}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition ${
-                        broadcastTab === 'telegram'
-                          ? 'bg-sky-50 text-sky-800 border border-sky-300 font-black'
-                          : 'text-ink-500 hover:text-ink-950'
-                      }`}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition ${broadcastTab === 'telegram'
+                        ? 'bg-sky-50 text-sky-800 border border-sky-300 font-black'
+                        : 'text-ink-500 hover:text-ink-950'
+                        }`}
                     >
                       <Send className="w-4 h-4 text-sky-600" />
                       <span>معاينة التيليجرام</span>
@@ -1902,11 +1981,10 @@ export default function AdminPage() {
 
                     <button
                       onClick={() => setBroadcastTab('whatsapp')}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition ${
-                        broadcastTab === 'whatsapp'
-                          ? 'bg-emerald-50 text-emerald-800 border border-emerald-300 font-black'
-                          : 'text-ink-500 hover:text-ink-950'
-                      }`}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition ${broadcastTab === 'whatsapp'
+                        ? 'bg-emerald-50 text-emerald-800 border border-emerald-300 font-black'
+                        : 'text-ink-500 hover:text-ink-950'
+                        }`}
                     >
                       <MessageCircle className="w-4 h-4 text-emerald-600" />
                       <span>معاينة الواتساب</span>
@@ -1992,9 +2070,8 @@ export default function AdminPage() {
                   </div>
                 </div>
                 <span
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${
-                    adSettings.enabled ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-paper-2 text-ink-600'
-                  }`}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${adSettings.enabled ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-paper-2 text-ink-600'
+                    }`}
                 >
                   <span className={`w-2 h-2 rounded-full ${adSettings.enabled ? 'bg-emerald-500' : 'bg-ink-400'}`} />
                   {adSettings.enabled ? 'الإعلانات مفعلة عامة' : 'الإعلانات متوقفة عامة'}
@@ -2235,9 +2312,8 @@ export default function AdminPage() {
 
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-line bg-paper-2/40 px-5 py-3">
                 <p
-                  className={`text-xs font-bold ${
-                    adSettingsMessage.includes('بنجاح') ? 'text-emerald-700' : 'text-ink-500'
-                  }`}
+                  className={`text-xs font-bold ${adSettingsMessage.includes('بنجاح') ? 'text-emerald-700' : 'text-ink-500'
+                    }`}
                 >
                   {adSettingsMessage || 'كافة المواضع متوافقة ومفحوصة وفق سياسات Google AdSense الرسمية.'}
                 </p>
@@ -2983,10 +3059,10 @@ export default function AdminPage() {
                   {savingJob || uploadingLogo
                     ? 'جارٍ الحفظ والرفع...'
                     : editingJob
-                    ? 'حفظ التعديلات'
-                    : duplicatingJob
-                    ? 'نشر النسخة الجديدة'
-                    : 'نشر الإعلان الآن'}
+                      ? 'حفظ التعديلات'
+                      : duplicatingJob
+                        ? 'نشر النسخة الجديدة'
+                        : 'نشر الإعلان الآن'}
                 </button>
               </div>
             </form>
@@ -3027,11 +3103,10 @@ export default function AdminPage() {
                   <button
                     key={tmpl.id}
                     onClick={() => setSelectedTemplateId(tmpl.id)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap flex items-center gap-1 ${
-                      selectedTemplateId === tmpl.id
-                        ? 'bg-ink-950 text-white'
-                        : 'bg-paper-2 border border-line text-ink-700 hover:bg-line'
-                    }`}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap flex items-center gap-1 ${selectedTemplateId === tmpl.id
+                      ? 'bg-ink-950 text-white'
+                      : 'bg-paper-2 border border-line text-ink-700 hover:bg-line'
+                      }`}
                   >
                     {selectedTemplateId === tmpl.id && <Check className="w-3 h-3 text-saffron-400" />}
                     <span>{tmpl.name}</span>
@@ -3044,11 +3119,10 @@ export default function AdminPage() {
             <div className="flex items-center gap-2 border-b border-line pb-2">
               <button
                 onClick={() => setBroadcastTab('telegram')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition ${
-                  broadcastTab === 'telegram'
-                    ? 'bg-sky-50 text-sky-800 border border-sky-300 font-black'
-                    : 'text-ink-500 hover:text-ink-950'
-                }`}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition ${broadcastTab === 'telegram'
+                  ? 'bg-sky-50 text-sky-800 border border-sky-300 font-black'
+                  : 'text-ink-500 hover:text-ink-950'
+                  }`}
               >
                 <Send className="w-4 h-4 text-sky-500" />
                 <span>تنسيق قناة التيليجرام</span>
@@ -3056,11 +3130,10 @@ export default function AdminPage() {
 
               <button
                 onClick={() => setBroadcastTab('whatsapp')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition ${
-                  broadcastTab === 'whatsapp'
-                    ? 'bg-emerald-50 text-emerald-800 border border-emerald-300 font-black'
-                    : 'text-ink-500 hover:text-ink-950'
-                }`}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition ${broadcastTab === 'whatsapp'
+                  ? 'bg-emerald-50 text-emerald-800 border border-emerald-300 font-black'
+                  : 'text-ink-500 hover:text-ink-950'
+                  }`}
               >
                 <MessageCircle className="w-4 h-4 text-emerald-500" />
                 <span>تنسيق مجتمعات الواتساب</span>
