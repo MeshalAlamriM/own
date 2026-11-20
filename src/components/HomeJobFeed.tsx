@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 import { Job, JobSector, GenderType, JobStatus } from '@/types/job';
 import JobCard from './JobCard';
 import JobFilter from './JobFilter';
+import AdBanner from './AdBanner';
 import { Sparkles, Inbox, ArrowDownUp, ChevronDown } from 'lucide-react';
 import { matchesSector } from '@/lib/ui';
 
@@ -206,8 +207,15 @@ export default function HomeJobFeed({
       {shown.length > 0 ? (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {shown.map((job) => (
-              <JobCard key={job.id} job={job} />
+            {shown.map((job, idx) => (
+              <div key={job.id} className="contents">
+                <JobCard job={job} />
+                {idx === 2 && (
+                  <div className="col-span-1 md:col-span-2 lg:col-span-3">
+                    <AdBanner placement={selectedSector === 'all' ? 'home-infeed' : 'sector-infeed'} label="إعلان" />
+                  </div>
+                )}
+              </div>
             ))}
           </div>
 

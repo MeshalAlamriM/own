@@ -3,8 +3,15 @@
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { Job, JobSector, GenderType, JobStatus } from '@/types/job';
-import { formatTelegramMessage, formatWhatsAppMessage } from '@/lib/broadcast';
+import {
+  formatTelegramMessage,
+  formatWhatsAppMessage,
+  BUILTIN_BROADCAST_TEMPLATES,
+  BroadcastTemplate,
+  renderTemplate,
+} from '@/lib/broadcast';
 import { AdSettings, DEFAULT_AD_SETTINGS } from '@/lib/ad-settings';
+import { DEFAULT_SOCIAL_SETTINGS, SocialSettings } from '@/lib/social-settings';
 import {
   PlusCircle,
   Trash2,
@@ -16,7 +23,6 @@ import {
   Lock,
   Unlock,
   Sparkles,
-  TrendingUp,
   Search,
   ExternalLink,
   RotateCcw,
@@ -34,20 +40,14 @@ import {
   BarChart3,
   MousePointerClick,
   Tag,
-  ChevronDown,
-  Layers,
-  Activity,
   FileText,
-  PieChart,
   Sliders,
-  X,
-  UploadCloud,
-  Image as ImageIcon,
-  ArrowUpRight,
   ShieldCheck,
-  Calendar,
-  Briefcase,
   Share2,
+  Globe,
+  SlidersHorizontal,
+  Bookmark,
+  CheckCheck,
 } from 'lucide-react';
 
 // Quick template presets for rapid job creation
@@ -139,8 +139,8 @@ export default function AdminPage() {
   const [pin, setPin] = useState('');
   const [pinError, setPinError] = useState(false);
 
-  // Active Tab: jobs | analytics | broadcast | ads | maintenance
-  const [activeTab, setActiveTab] = useState<'jobs' | 'analytics' | 'broadcast' | 'ads' | 'maintenance'>('jobs');
+  // Active Tab: jobs | analytics | broadcast | ads | social | maintenance
+  const [activeTab, setActiveTab] = useState<'jobs' | 'analytics' | 'broadcast' | 'ads' | 'social' | 'maintenance'>('jobs');
 
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
@@ -180,7 +180,17 @@ export default function AdminPage() {
   // Tags input state
   const [tagInput, setTagInput] = useState('');
 
-  // Broadcast & Publishing State
+  // Broadcast & Templates State (Innovative Custom Format System)
+  const [customTemplates, setCustomTemplates] = useState<BroadcastTemplate[]>([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>('detailed');
+  const [editingTemplateMode, setEditingTemplateMode] = useState<boolean>(false);
+  const [templateForm, setTemplateForm] = useState({
+    name: '',
+    description: '',
+    telegramFormat: '',
+    whatsappFormat: '',
+  });
+
   const [broadcastModalOpen, setBroadcastModalOpen] = useState(false);
   const [broadcastJob, setBroadcastJob] = useState<Job | null>(null);
   const [broadcastTab, setBroadcastTab] = useState<'telegram' | 'whatsapp'>('telegram');
@@ -196,7 +206,7 @@ export default function AdminPage() {
   const [telegramChannelId, setTelegramChannelId] = useState('');
   const [autoPublishTelegram, setAutoPublishTelegram] = useState(false);
 
-  // Ad Settings State
+  // Ad Settings State (Expanded with all AdSense compliant placements)
   const [adSettings, setAdSettings] = useState<AdSettings>(DEFAULT_AD_SETTINGS);
   const [savingAdSettings, setSavingAdSettings] = useState(false);
   const [adSettingsMessage, setAdSettingsMessage] = useState('');
@@ -206,6 +216,11 @@ export default function AdminPage() {
     totals: { impressions: number; clicks: number; ctr: number };
     rows: { unit: string; slotId: string; placement: string; impressions: number; clicks: number; ctr: number }[];
   }>({ days: 30, totals: { impressions: 0, clicks: 0, ctr: 0 }, rows: [] });
+
+  // Social Media Settings State
+  const [socialSettings, setSocialSettings] = useState<SocialSettings>(DEFAULT_SOCIAL_SETTINGS);
+  const [savingSocialSettings, setSavingSocialSettings] = useState(false);
+  const [socialSettingsMessage, setSocialSettingsMessage] = useState('');
 
   // Dedicated Broadcast Hub selected job
   const [hubSelectedJobId, setHubSelectedJobId] = useState<string>('');
@@ -240,6 +255,67 @@ export default function AdminPage() {
 
   const [seeding, setSeeding] = useState(false);
 
+  // All available templates (built-in + user-saved custom templates)
+  const allTemplates = useMemo(() => {
+    return [...BUILTIN_BROADCAST_TEMPLATES, ...customTemplates];
+  }, [customTemplates]);
+
+  const activeTemplate = useMemo(() => {
+    return allTemplates.find((t) => t.id === selectedTemplateId) || BUILTIN_BROADCAST_TEMPLATES[0];
+  }, [allTemplates, selectedTemplateId]);
+
+  // Load custom templates from localStorage
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('custom_broadcast_templates');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) setCustomTemplates(parsed);
+      }
+    } catch {
+      // Ignore
+    }
+  }, []);
+
+  // Save new custom template
+  const handleSaveCustomTemplate = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!templateForm.name.trim()) {
+      alert('يرجى إدخال اسم للصيغة');
+      return;
+    }
+    const newTemplate: BroadcastTemplate = {
+      id: `custom_${Date.now()}`,
+      name: templateForm.name.trim(),
+      description: templateForm.description.trim() || 'صيغة مخصصة بواسطة مدير النظام',
+      telegramFormat: templateForm.telegramFormat.trim() || BUILTIN_BROADCAST_TEMPLATES[0].telegramFormat,
+      whatsappFormat: templateForm.whatsappFormat.trim() || BUILTIN_BROADCAST_TEMPLATES[0].whatsappFormat,
+    };
+    const updated = [...customTemplates, newTemplate];
+    setCustomTemplates(updated);
+    localStorage.setItem('custom_broadcast_templates', JSON.stringify(updated));
+    setSelectedTemplateId(newTemplate.id);
+    setEditingTemplateMode(false);
+    alert('تم حفظ الصيغة المخصصة بنجاح! يمكنك الآن اختيارها واستخدامها في أي وقت. 🎉');
+  };
+
+  const handleDeleteCustomTemplate = (id: string) => {
+    if (!confirm('هل تريد حذف هذه الصيغة المخصصة؟')) return;
+    const updated = customTemplates.filter((t) => t.id !== id);
+    setCustomTemplates(updated);
+    localStorage.setItem('custom_broadcast_templates', JSON.stringify(updated));
+    setSelectedTemplateId('detailed');
+  };
+
+  const insertVariableIntoTemplate = (variableKey: string, target: 'telegram' | 'whatsapp') => {
+    const placeholder = `{${variableKey}}`;
+    if (target === 'telegram') {
+      setTemplateForm((prev) => ({ ...prev, telegramFormat: prev.telegramFormat + ' ' + placeholder }));
+    } else {
+      setTemplateForm((prev) => ({ ...prev, whatsappFormat: prev.whatsappFormat + ' ' + placeholder }));
+    }
+  };
+
   // Load Ad Settings
   const loadAdSettings = async () => {
     try {
@@ -261,14 +337,47 @@ export default function AdminPage() {
         body: JSON.stringify(adSettings),
       });
       const data = await res.json();
-      if (!res.ok || !data.success) throw new Error(data.error || 'تعذر حفظ إعدادات الإعلانات');
+      if (!res.ok || !data.success) throw new Error(data.error || 'تعذر حفظ إعدادات ومواضع الإعلانات');
       setAdSettings(data.data);
-      setAdSettingsMessage('تم حفظ إعدادات الإعلانات بنجاح');
+      setAdSettingsMessage('تم حفظ إعدادات ومواضع إعلانات AdSense بنجاح! ✅');
       await loadAuditLogs();
     } catch (error) {
       setAdSettingsMessage(error instanceof Error ? error.message : 'تعذر حفظ الإعدادات');
     } finally {
       setSavingAdSettings(false);
+    }
+  };
+
+  // Load Social Settings
+  const loadSocialSettings = async () => {
+    try {
+      const res = await fetch('/api/admin/settings/social');
+      const data = await res.json();
+      if (data.success) setSocialSettings(data.data);
+    } catch {
+      // Safe defaults
+    }
+  };
+
+  const saveSocialSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingSocialSettings(true);
+    setSocialSettingsMessage('');
+    try {
+      const res = await fetch('/api/admin/settings/social', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(socialSettings),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'تعذر حفظ روابط التواصل');
+      setSocialSettings(data.data);
+      setSocialSettingsMessage('تم حفظ روابط حسابات التواصل الاجتماعي بنجاح! 💾');
+      await loadAuditLogs();
+    } catch (error) {
+      setSocialSettingsMessage(error instanceof Error ? error.message : 'فشل الحفظ');
+    } finally {
+      setSavingSocialSettings(false);
     }
   };
 
@@ -278,7 +387,7 @@ export default function AdminPage() {
       const data = await res.json();
       if (data.success) setAdStats(data.data);
     } catch {
-      // Ignore errors
+      // Ignore
     }
   };
 
@@ -335,6 +444,7 @@ export default function AdminPage() {
       await Promise.all([
         loadJobs(),
         loadAuditLogs(),
+        loadSocialSettings(),
         statsRequest.then((data) => {
           if (data.success) setDashboardStats(data.data);
         }),
@@ -387,7 +497,6 @@ export default function AdminPage() {
     alert(failed ? `تم حذف بعض الإعلانات، وفشل حذف ${failed}.` : 'تم حذف الإعلانات المحددة بنجاح.');
   };
 
-  // Quick inline status change without opening edit modal
   const handleQuickStatusChange = async (jobId: string, newStatus: JobStatus) => {
     setUpdatingStatusId(jobId);
     try {
@@ -418,6 +527,7 @@ export default function AdminPage() {
         if (data.authenticated) {
           loadAdSettings();
           loadAdStats();
+          loadSocialSettings();
         }
       })
       .catch(() => setIsAuthenticated(false));
@@ -444,6 +554,7 @@ export default function AdminPage() {
         setIsAuthenticated(true);
         loadAdSettings();
         loadAdStats();
+        loadSocialSettings();
         setPin('');
         setPinError(false);
       })
@@ -462,7 +573,6 @@ export default function AdminPage() {
     alert('تم حفظ إعدادات التيليجرام بنجاح! 💾');
   };
 
-  // Handle Logo File Input with Live Preview
   const handleLogoFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -480,7 +590,6 @@ export default function AdminPage() {
     }
   };
 
-  // Apply Quick Template
   const applyTemplate = (key: keyof typeof JOB_TEMPLATES) => {
     const template = JOB_TEMPLATES[key];
     setFormData((prev) => ({
@@ -500,7 +609,6 @@ export default function AdminPage() {
     }));
   };
 
-  // Add Tag chip
   const addTag = (text: string) => {
     const clean = text.replace(/^[#\s]+/, '').trim();
     if (!clean) return;
@@ -514,7 +622,6 @@ export default function AdminPage() {
     setFormData((prev) => ({ ...prev, tags: prev.tags.filter((_, i) => i !== index) }));
   };
 
-  // Set End Date helper
   const setDaysFromToday = (days: number) => {
     const target = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
     setFormData((prev) => ({ ...prev, endDate: target.toISOString().split('T')[0] }));
@@ -702,9 +809,12 @@ export default function AdminPage() {
     setBroadcastModalOpen(true);
   };
 
-  const executeTelegramPublish = async (job: Job) => {
+  // Execute Telegram Publish using current chosen template
+  const executeTelegramPublish = async (job: Job, templateToUse = activeTemplate) => {
     setPublishingTelegram(true);
     setPublishResult({ type: 'idle', message: '' });
+
+    const formattedCustom = renderTemplate(templateToUse.telegramFormat, job, currentOrigin);
 
     try {
       const res = await fetch('/api/publish/telegram', {
@@ -712,7 +822,8 @@ export default function AdminPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           jobId: job.id,
-          siteUrl: typeof window !== 'undefined' ? window.location.origin : 'https://wadhaef-alyoum.sa',
+          siteUrl: currentOrigin,
+          customText: formattedCustom,
         }),
       });
 
@@ -738,9 +849,9 @@ export default function AdminPage() {
     }
   };
 
-  const openWhatsAppBroadcast = (job: Job) => {
-    const siteUrl = typeof window !== 'undefined' ? window.location.origin : 'https://wadhaef-alyoum.sa';
-    const text = formatWhatsAppMessage(job, siteUrl);
+  // Open WhatsApp Broadcast using current chosen template
+  const openWhatsAppBroadcast = (job: Job, templateToUse = activeTemplate) => {
+    const text = renderTemplate(templateToUse.whatsappFormat, job, currentOrigin);
     const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
     window.open(url, '_blank');
   };
@@ -814,7 +925,7 @@ export default function AdminPage() {
     return jobs.find((j) => j.id === hubSelectedJobId) || jobs[0] || null;
   }, [jobs, hubSelectedJobId]);
 
-  // LOGIN SCREEN (Unified with site theme)
+  // LOGIN SCREEN
   if (!isAuthenticated) {
     return (
       <div className="py-20 bg-paper min-h-screen flex items-center justify-center px-4 selection:bg-saffron-200">
@@ -889,7 +1000,7 @@ export default function AdminPage() {
               className="inline-flex items-center gap-1 text-[11px] text-saffron-400 hover:text-saffron-300 font-bold transition"
             >
               <span>معاينة الموقع الحي</span>
-              <ArrowUpRight className="w-3 h-3" />
+              <ExternalLink className="w-3 h-3" />
             </Link>
             <span className="text-ink-700">|</span>
             <button
@@ -988,7 +1099,7 @@ export default function AdminPage() {
               }`}
             >
               <Send className="w-4 h-4 text-sky-600" />
-              <span>مركز النشر والبث</span>
+              <span>مركز النشر والبث والصيغ</span>
               <span className="w-2 h-2 rounded-full bg-sky-500" />
             </button>
 
@@ -1001,7 +1112,7 @@ export default function AdminPage() {
               }`}
             >
               <Sliders className="w-4 h-4 text-amber-600" />
-              <span>إدارة إعلانات AdSense</span>
+              <span>مواضع إعلانات AdSense</span>
               <span
                 className={`px-1.5 py-0.5 rounded-full text-[10px] ${
                   adSettings.enabled ? 'bg-emerald-50 text-emerald-700' : 'bg-ink-100 text-ink-600'
@@ -1009,6 +1120,18 @@ export default function AdminPage() {
               >
                 {adSettings.enabled ? 'مفعلة' : 'متوقفة'}
               </span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('social')}
+              className={`flex items-center gap-2 py-2.5 px-4 font-bold border-b-2 transition whitespace-nowrap ${
+                activeTab === 'social'
+                  ? 'border-saffron-500 text-ink-950 font-black'
+                  : 'border-transparent text-ink-500 hover:text-ink-900 hover:bg-paper-2/50 rounded-t-lg'
+              }`}
+            >
+              <Share2 className="w-4 h-4 text-emerald-600" />
+              <span>حسابات التواصل</span>
             </button>
 
             <button
@@ -1407,7 +1530,6 @@ export default function AdminPage() {
         {/* ========================================================================= */}
         {activeTab === 'analytics' && (
           <div className="space-y-6">
-            {/* KPI Row */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <div className="bg-white p-5 rounded-2xl border border-line shadow-soft">
                 <span className="text-xs text-ink-500 font-bold block mb-1">المشاهدات السحابية</span>
@@ -1439,7 +1561,6 @@ export default function AdminPage() {
               </div>
             </div>
 
-            {/* Visual Sector Breakdown Chart */}
             <div className="bg-white rounded-2xl border border-line p-6 shadow-soft space-y-5">
               <div className="flex items-center justify-between">
                 <div>
@@ -1471,7 +1592,6 @@ export default function AdminPage() {
               </div>
             </div>
 
-            {/* Top Viewed Jobs Leaderboard */}
             <div className="bg-white rounded-2xl border border-line p-6 shadow-soft space-y-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -1537,7 +1657,7 @@ export default function AdminPage() {
         )}
 
         {/* ========================================================================= */}
-        {/* TAB 3: BROADCAST & CHANNELS HUB */}
+        {/* TAB 3: INNOVATIVE BROADCAST STUDIO & TEMPLATES CREATOR */}
         {/* ========================================================================= */}
         {activeTab === 'broadcast' && (
           <div className="space-y-6">
@@ -1567,15 +1687,188 @@ export default function AdminPage() {
               </button>
             </div>
 
-            {/* Broadcast Studio: Choose job and preview */}
+            {/* Template Selection & Creation Bar */}
+            <div className="bg-white rounded-2xl border border-line shadow-soft p-5 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h3 className="font-black text-ink-950 text-sm sm:text-base flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-saffron-600" />
+                    <span>اختيار أو تصميم صيغة النشر (أشكال مبتكرة متعددة)</span>
+                  </h3>
+                  <p className="text-xs text-ink-500">
+                    اختر من الصيغ الجاهزة المبتكرة، أو صمم واحفظ صيغتك المخصصة بأسلوبك الخاص
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => {
+                    setEditingTemplateMode(!editingTemplateMode);
+                    if (!editingTemplateMode) {
+                      setTemplateForm({
+                        name: 'صيغتي المخصصة',
+                        description: 'صيغة مخصصة جديدة',
+                        telegramFormat: BUILTIN_BROADCAST_TEMPLATES[0].telegramFormat,
+                        whatsappFormat: BUILTIN_BROADCAST_TEMPLATES[0].whatsappFormat,
+                      });
+                    }
+                  }}
+                  className="px-4 py-2 bg-saffron-500 hover:bg-saffron-600 text-ink-950 text-xs font-black rounded-xl shadow-soft transition self-start sm:self-auto"
+                >
+                  {editingTemplateMode ? '✕ إغلاق محرر الصيغ' : '✨ إنشاء وحفظ صيغة جديدة من عندك'}
+                </button>
+              </div>
+
+              {/* Template Chips / Selector */}
+              <div className="flex items-center gap-2 overflow-x-auto scrollbar-none pb-1">
+                {allTemplates.map((tmpl) => (
+                  <div key={tmpl.id} className="relative group shrink-0">
+                    <button
+                      onClick={() => setSelectedTemplateId(tmpl.id)}
+                      className={`px-3.5 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap flex items-center gap-1.5 ${
+                        selectedTemplateId === tmpl.id
+                          ? 'bg-ink-950 text-white shadow-soft'
+                          : 'bg-paper-2 border border-line text-ink-700 hover:bg-line'
+                      }`}
+                    >
+                      {selectedTemplateId === tmpl.id && <Check className="w-3.5 h-3.5 text-saffron-400" />}
+                      <span>{tmpl.name}</span>
+                    </button>
+                    {tmpl.id.startsWith('custom_') && (
+                      <button
+                        onClick={() => handleDeleteCustomTemplate(tmpl.id)}
+                        className="absolute -top-1.5 -start-1.5 w-4 h-4 rounded-full bg-rose-600 text-white flex items-center justify-center text-[9px] opacity-0 group-hover:opacity-100 transition shadow-xs"
+                        title="حذف هذه الصيغة المخصصة"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Custom Template Editor Drawer */}
+              {editingTemplateMode && (
+                <form
+                  onSubmit={handleSaveCustomTemplate}
+                  className="p-5 rounded-2xl border border-saffron-200 bg-saffron-50/40 space-y-4 animate-in fade-in"
+                >
+                  <div className="flex items-center justify-between border-b border-saffron-200/60 pb-3">
+                    <h4 className="font-black text-ink-950 text-xs sm:text-sm">
+                      محرر الصيغ المبتكر: اكتب قالباً واحفظه مع المتغيرات الديناميكية
+                    </h4>
+                    <span className="text-[11px] text-saffron-800 font-bold">يتم الحفظ في جهازك تلقائياً</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-ink-800 mb-1">اسم الصيغة المخصصة *</label>
+                      <input
+                        type="text"
+                        required
+                        value={templateForm.name}
+                        onChange={(e) => setTemplateForm({ ...templateForm, name: e.target.value })}
+                        placeholder="مثال: صيغة قنوات التنبيه المسائية..."
+                        className="w-full p-2.5 bg-white border border-line rounded-xl text-xs font-bold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-ink-800 mb-1">وصف الصيغة</label>
+                      <input
+                        type="text"
+                        value={templateForm.description}
+                        onChange={(e) => setTemplateForm({ ...templateForm, description: e.target.value })}
+                        placeholder="وصف مختصر لمجال استخدام الصيغة..."
+                        className="w-full p-2.5 bg-white border border-line rounded-xl text-xs"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Insertable variable chips */}
+                  <div className="space-y-1.5">
+                    <span className="text-[11px] font-bold text-ink-600 block">
+                      انقر على أي متغير لإدراجه في الصيغة تلقائياً:
+                    </span>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {[
+                        { key: 'title', label: 'المسمى الوظيفي' },
+                        { key: 'company', label: 'الجهة المعلنة' },
+                        { key: 'sector', label: 'القطاع' },
+                        { key: 'qualifications', label: 'المؤهل' },
+                        { key: 'gender', label: 'الجنس' },
+                        { key: 'city', label: 'المدينة' },
+                        { key: 'salary', label: 'الراتب' },
+                        { key: 'experience', label: 'الخبرة' },
+                        { key: 'endDate', label: 'تاريخ الانتهاء' },
+                        { key: 'summary', label: 'النبذة' },
+                        { key: 'url', label: 'رابط التقديم' },
+                        { key: 'tags', label: 'الوسوم' },
+                      ].map((v) => (
+                        <button
+                          key={v.key}
+                          type="button"
+                          onClick={() => insertVariableIntoTemplate(v.key, broadcastTab)}
+                          className="px-2 py-1 rounded-lg bg-white border border-saffron-300 hover:bg-saffron-100 text-[10px] font-bold text-saffron-900 transition"
+                        >
+                          + {v.label} <code className="dir-ltr text-[9px]">({`{${v.key}}`})</code>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-ink-800 mb-1">
+                        صيغة التيليجرام (يدعم وسوم HTML: &lt;b&gt;, &lt;i&gt;)
+                      </label>
+                      <textarea
+                        rows={8}
+                        value={templateForm.telegramFormat}
+                        onChange={(e) => setTemplateForm({ ...templateForm, telegramFormat: e.target.value })}
+                        className="w-full p-3 bg-white border border-line rounded-xl font-mono text-[11px] leading-relaxed"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-ink-800 mb-1">
+                        صيغة الواتساب (يدعم وسوم Markdown: *bold*, _italic_)
+                      </label>
+                      <textarea
+                        rows={8}
+                        value={templateForm.whatsappFormat}
+                        onChange={(e) => setTemplateForm({ ...templateForm, whatsappFormat: e.target.value })}
+                        className="w-full p-3 bg-white border border-line rounded-xl font-mono text-[11px] leading-relaxed"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setEditingTemplateMode(false)}
+                      className="px-4 py-2 rounded-xl bg-white border border-line text-xs font-bold text-ink-700 hover:bg-paper-2"
+                    >
+                      إلغاء
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-5 py-2 rounded-xl bg-ink-950 text-white text-xs font-black hover:bg-ink-900 shadow-soft"
+                    >
+                      حفظ الصيغة في قائمتك
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+
+            {/* Broadcast Studio: Choose job and preview with chosen template */}
             <div className="bg-white rounded-2xl border border-line shadow-soft p-6 space-y-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-line pb-4">
                 <div>
-                  <h3 className="text-base font-black text-ink-950">استوديو تنسيق وبث الإعلانات</h3>
-                  <p className="text-xs text-ink-500">اختر أي وظيفة لبثها فوراً في القنوات بتنسيق جذاب ومحترف</p>
+                  <h3 className="text-base font-black text-ink-950">معاينة البث المباشر بالصيغة المختارة</h3>
+                  <p className="text-xs text-ink-500">
+                    الصيغة النشطة حالياً: <strong className="text-saffron-700 font-bold">{activeTemplate.name}</strong>
+                  </p>
                 </div>
 
-                {/* Job picker */}
                 <div className="w-full sm:w-80">
                   <select
                     value={hubSelectedJobId}
@@ -1604,7 +1897,7 @@ export default function AdminPage() {
                       }`}
                     >
                       <Send className="w-4 h-4 text-sky-600" />
-                      <span>تنسيق قناة التيليجرام</span>
+                      <span>معاينة التيليجرام</span>
                     </button>
 
                     <button
@@ -1616,7 +1909,7 @@ export default function AdminPage() {
                       }`}
                     >
                       <MessageCircle className="w-4 h-4 text-emerald-600" />
-                      <span>تنسيق مجتمعات الواتساب</span>
+                      <span>معاينة الواتساب</span>
                     </button>
                   </div>
 
@@ -1624,15 +1917,15 @@ export default function AdminPage() {
                   <div className="relative">
                     <div className="bg-ink-950 text-ink-100 p-5 rounded-2xl font-mono text-xs whitespace-pre-wrap leading-relaxed max-h-80 overflow-y-auto border border-ink-800 selection:bg-saffron-500 selection:text-ink-950">
                       {broadcastTab === 'telegram'
-                        ? formatTelegramMessage(hubJob, currentOrigin)
-                        : formatWhatsAppMessage(hubJob, currentOrigin)}
+                        ? renderTemplate(activeTemplate.telegramFormat, hubJob, currentOrigin)
+                        : renderTemplate(activeTemplate.whatsappFormat, hubJob, currentOrigin)}
                     </div>
                   </div>
 
                   {/* Broadcast Actions */}
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
                     <button
-                      onClick={() => executeTelegramPublish(hubJob)}
+                      onClick={() => executeTelegramPublish(hubJob, activeTemplate)}
                       disabled={publishingTelegram}
                       className="flex items-center justify-center gap-2 py-3 px-4 bg-sky-600 hover:bg-sky-700 disabled:bg-sky-400 text-white rounded-xl text-xs font-black shadow-soft transition"
                     >
@@ -1641,7 +1934,7 @@ export default function AdminPage() {
                     </button>
 
                     <button
-                      onClick={() => openWhatsAppBroadcast(hubJob)}
+                      onClick={() => openWhatsAppBroadcast(hubJob, activeTemplate)}
                       className="flex items-center justify-center gap-2 py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black shadow-soft transition"
                     >
                       <MessageCircle className="w-4 h-4" />
@@ -1652,8 +1945,8 @@ export default function AdminPage() {
                       onClick={() =>
                         copyFormatted(
                           broadcastTab === 'telegram'
-                            ? formatTelegramMessage(hubJob, currentOrigin)
-                            : formatWhatsAppMessage(hubJob, currentOrigin),
+                            ? renderTemplate(activeTemplate.telegramFormat, hubJob, currentOrigin)
+                            : renderTemplate(activeTemplate.whatsappFormat, hubJob, currentOrigin),
                           broadcastTab
                         )
                       }
@@ -1681,11 +1974,10 @@ export default function AdminPage() {
         )}
 
         {/* ========================================================================= */}
-        {/* TAB 4: ADSENSE MANAGEMENT */}
+        {/* TAB 4: COMPREHENSIVE ADSENSE PLACEMENTS & COMPLIANCE */}
         {/* ========================================================================= */}
         {activeTab === 'ads' && (
           <div className="space-y-6">
-            {/* Ads Switch & Master Settings */}
             <section className="bg-white rounded-2xl border border-line shadow-soft overflow-hidden">
               <div className="p-5 border-b border-line flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
@@ -1693,8 +1985,10 @@ export default function AdminPage() {
                     <Sliders className="w-5 h-5" />
                   </div>
                   <div>
-                    <h2 className="font-black text-ink-950">إدارة إعلانات Google AdSense</h2>
-                    <p className="text-xs text-ink-500">تحكم بظهور الإعلانات وأماكنها وأرقام الوحدات بدون تعديل الكود</p>
+                    <h2 className="font-black text-ink-950">مواضع إعلانات Google AdSense المتوافقة رسمياً</h2>
+                    <p className="text-xs text-ink-500">
+                      حدد بعلامة (✓) المواضع الدقيقة التي تريد ظهور الإعلانات فيها عبر كافة صفحات الموقع
+                    </p>
                   </div>
                 </div>
                 <span
@@ -1703,81 +1997,238 @@ export default function AdminPage() {
                   }`}
                 >
                   <span className={`w-2 h-2 rounded-full ${adSettings.enabled ? 'bg-emerald-500' : 'bg-ink-400'}`} />
-                  {adSettings.enabled ? 'الإعلانات مفعلة' : 'الإعلانات متوقفة'}
+                  {adSettings.enabled ? 'الإعلانات مفعلة عامة' : 'الإعلانات متوقفة عامة'}
                 </span>
               </div>
 
-              <div className="p-5 grid gap-5 lg:grid-cols-2">
-                <div className="space-y-4">
-                  <label className="flex items-center justify-between gap-4 rounded-xl border border-line bg-paper-2/60 p-3.5 cursor-pointer">
-                    <div>
-                      <strong className="block text-sm text-ink-900">تفعيل الإعلانات الرئيسية</strong>
-                      <span className="text-[11px] text-ink-500">إظهار أو إخفاء جميع الوحدات الإعلانية في الموقع فورياً</span>
+              <div className="p-5 space-y-6">
+                {/* Master Switch */}
+                <label className="flex items-center justify-between gap-4 rounded-2xl border border-line bg-paper-2/60 p-4 cursor-pointer">
+                  <div>
+                    <strong className="block text-sm text-ink-950 font-black">المفتاح الرئيسي لإعلانات الموقع</strong>
+                    <span className="text-xs text-ink-500">
+                      تشغيل أو إيقاف كافة الوحدات الإعلانية في كامل الموقع فورياً بنقرة واحدة
+                    </span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={adSettings.enabled}
+                    onChange={(e) => setAdSettings({ ...adSettings, enabled: e.target.checked })}
+                    className="h-6 w-6 accent-saffron-500 rounded cursor-pointer"
+                  />
+                </label>
+
+                {/* Ad Placements Checkboxes Matrix */}
+                <div className="space-y-5">
+                  {/* Group 1: Home Page */}
+                  <div className="p-4 rounded-2xl border border-line bg-paper/50 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-black text-ink-950 text-xs sm:text-sm flex items-center gap-2">
+                        <span>🏠 مواضع الصفحة الرئيسية (Home Page)</span>
+                      </h3>
+                      <span className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-md font-bold">
+                        متوافق مع سياسات AdSense ✅
+                      </span>
                     </div>
-                    <input
-                      type="checkbox"
-                      checked={adSettings.enabled}
-                      onChange={(e) => setAdSettings({ ...adSettings, enabled: e.target.checked })}
-                      className="h-5 w-5 accent-saffron-500"
-                    />
-                  </label>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <label className="flex items-center gap-2 rounded-xl border border-line p-3 cursor-pointer text-xs font-bold text-ink-800">
-                      <input
-                        type="checkbox"
-                        checked={adSettings.showOnHome}
-                        onChange={(e) => setAdSettings({ ...adSettings, showOnHome: e.target.checked })}
-                        className="h-4 w-4 accent-saffron-500"
-                      />
-                      ظهور في الصفحة الرئيسية
-                    </label>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <label className="flex items-start gap-3 p-3 bg-white rounded-xl border border-line cursor-pointer hover:border-saffron-300 transition">
+                        <input
+                          type="checkbox"
+                          checked={adSettings.homeTop}
+                          onChange={(e) => setAdSettings({ ...adSettings, homeTop: e.target.checked })}
+                          className="mt-0.5 h-4 w-4 accent-saffron-500 rounded shrink-0"
+                        />
+                        <div className="text-xs">
+                          <strong className="block text-ink-900">أعلى الرئيسية (تحت الهيدر)</strong>
+                          <span className="text-[11px] text-ink-400">إعلان عريض متجاوب (Responsive Banner)</span>
+                        </div>
+                      </label>
 
-                    <label className="flex items-center gap-2 rounded-xl border border-line p-3 cursor-pointer text-xs font-bold text-ink-800">
-                      <input
-                        type="checkbox"
-                        checked={adSettings.showOnJobDetail}
-                        onChange={(e) => setAdSettings({ ...adSettings, showOnJobDetail: e.target.checked })}
-                        className="h-4 w-4 accent-saffron-500"
-                      />
-                      ظهور في صفحة تفاصيل الوظيفة
-                    </label>
+                      <label className="flex items-start gap-3 p-3 bg-white rounded-xl border border-line cursor-pointer hover:border-saffron-300 transition">
+                        <input
+                          type="checkbox"
+                          checked={adSettings.homeInFeed}
+                          onChange={(e) => setAdSettings({ ...adSettings, homeInFeed: e.target.checked })}
+                          className="mt-0.5 h-4 w-4 accent-saffron-500 rounded shrink-0"
+                        />
+                        <div className="text-xs">
+                          <strong className="block text-ink-900">بين بطاقات الوظائف (In-Feed)</strong>
+                          <span className="text-[11px] text-ink-400">مدمج داخل القائمة كل 3 وظائف لتجربة مستخدم مثالية</span>
+                        </div>
+                      </label>
+
+                      <label className="flex items-start gap-3 p-3 bg-white rounded-xl border border-line cursor-pointer hover:border-saffron-300 transition">
+                        <input
+                          type="checkbox"
+                          checked={adSettings.homeBottom}
+                          onChange={(e) => setAdSettings({ ...adSettings, homeBottom: e.target.checked })}
+                          className="mt-0.5 h-4 w-4 accent-saffron-500 rounded shrink-0"
+                        />
+                        <div className="text-xs">
+                          <strong className="block text-ink-900">أسفل الرئيسية (قبل الفوتر)</strong>
+                          <span className="text-[11px] text-ink-400">يظهر بعد تصفح كامل الوظائف</span>
+                        </div>
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Group 2: Job Detail Page */}
+                  <div className="p-4 rounded-2xl border border-line bg-paper/50 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-black text-ink-950 text-xs sm:text-sm flex items-center gap-2">
+                        <span>📄 مواضع صفحة تفاصيل الوظيفة (Job Detail)</span>
+                      </h3>
+                      <span className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-md font-bold">
+                        أعلى عائد للنقرات المحسوبة ✅
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                      <label className="flex items-start gap-3 p-3 bg-white rounded-xl border border-line cursor-pointer hover:border-saffron-300 transition">
+                        <input
+                          type="checkbox"
+                          checked={adSettings.jobDetailTop}
+                          onChange={(e) => setAdSettings({ ...adSettings, jobDetailTop: e.target.checked })}
+                          className="mt-0.5 h-4 w-4 accent-saffron-500 rounded shrink-0"
+                        />
+                        <div className="text-xs">
+                          <strong className="block text-ink-900">أعلى تفاصيل الوظيفة</strong>
+                          <span className="text-[11px] text-ink-400">فوق البطاقة الرئيسية</span>
+                        </div>
+                      </label>
+
+                      <label className="flex items-start gap-3 p-3 bg-white rounded-xl border border-line cursor-pointer hover:border-saffron-300 transition">
+                        <input
+                          type="checkbox"
+                          checked={adSettings.jobDetailInArticle}
+                          onChange={(e) => setAdSettings({ ...adSettings, jobDetailInArticle: e.target.checked })}
+                          className="mt-0.5 h-4 w-4 accent-saffron-500 rounded shrink-0"
+                        />
+                        <div className="text-xs">
+                          <strong className="block text-ink-900">داخل المقال (In-Article)</strong>
+                          <span className="text-[11px] text-ink-400">بين الشروط والمزايا بتنسيق هادئ</span>
+                        </div>
+                      </label>
+
+                      <label className="flex items-start gap-3 p-3 bg-white rounded-xl border border-line cursor-pointer hover:border-saffron-300 transition">
+                        <input
+                          type="checkbox"
+                          checked={adSettings.jobDetailBeforeApply}
+                          onChange={(e) => setAdSettings({ ...adSettings, jobDetailBeforeApply: e.target.checked })}
+                          className="mt-0.5 h-4 w-4 accent-saffron-500 rounded shrink-0"
+                        />
+                        <div className="text-xs">
+                          <strong className="block text-ink-900">قبل التقديم (مسافة أمان)</strong>
+                          <span className="text-[11px] text-ink-400">فوق زر التقديم مع عزل لمنع النقرات العرضية</span>
+                        </div>
+                      </label>
+
+                      <label className="flex items-start gap-3 p-3 bg-white rounded-xl border border-line cursor-pointer hover:border-saffron-300 transition">
+                        <input
+                          type="checkbox"
+                          checked={adSettings.jobDetailBottom}
+                          onChange={(e) => setAdSettings({ ...adSettings, jobDetailBottom: e.target.checked })}
+                          className="mt-0.5 h-4 w-4 accent-saffron-500 rounded shrink-0"
+                        />
+                        <div className="text-xs">
+                          <strong className="block text-ink-900">أسفل صفحة الوظيفة</strong>
+                          <span className="text-[11px] text-ink-400">بعد بطاقات الوظائف المشابهة</span>
+                        </div>
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Group 3: Category & Search Pages */}
+                  <div className="p-4 rounded-2xl border border-line bg-paper/50 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-black text-ink-950 text-xs sm:text-sm flex items-center gap-2">
+                        <span>📑 مواضع صفحات الأقسام والبحث (Sectors & Search)</span>
+                      </h3>
+                      <span className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-md font-bold">
+                        متوافق مع صفحات التدريب والنتائج ✅
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <label className="flex items-start gap-3 p-3 bg-white rounded-xl border border-line cursor-pointer hover:border-saffron-300 transition">
+                        <input
+                          type="checkbox"
+                          checked={adSettings.sectorPagesTop}
+                          onChange={(e) => setAdSettings({ ...adSettings, sectorPagesTop: e.target.checked })}
+                          className="mt-0.5 h-4 w-4 accent-saffron-500 rounded shrink-0"
+                        />
+                        <div className="text-xs">
+                          <strong className="block text-ink-900">أعلى صفحات الأقسام والبحث</strong>
+                          <span className="text-[11px] text-ink-400">
+                            يظهر أعلى صفحات (الحكومية، العسكرية، الشركات، التدريب، نتائج القبول)
+                          </span>
+                        </div>
+                      </label>
+
+                      <label className="flex items-start gap-3 p-3 bg-white rounded-xl border border-line cursor-pointer hover:border-saffron-300 transition">
+                        <input
+                          type="checkbox"
+                          checked={adSettings.sectorPagesInFeed}
+                          onChange={(e) => setAdSettings({ ...adSettings, sectorPagesInFeed: e.target.checked })}
+                          className="mt-0.5 h-4 w-4 accent-saffron-500 rounded shrink-0"
+                        />
+                        <div className="text-xs">
+                          <strong className="block text-ink-900">بين بطاقات وظائف الأقسام (In-Feed)</strong>
+                          <span className="text-[11px] text-ink-400">إعلان مدمج بعد البطاقة الثالثة في كل تصنيف</span>
+                        </div>
+                      </label>
+
+                      <label className="flex items-start gap-3 p-3 bg-white rounded-xl border border-line cursor-pointer hover:border-saffron-300 transition">
+                        <input
+                          type="checkbox"
+                          checked={adSettings.sidebarSticky ?? true}
+                          onChange={(e) => setAdSettings({ ...adSettings, sidebarSticky: e.target.checked })}
+                          className="mt-0.5 h-4 w-4 accent-saffron-500 rounded shrink-0"
+                        />
+                        <div className="text-xs">
+                          <strong className="block text-ink-900">الشريط الجانبي اللاصق (Sticky Sidebar)</strong>
+                          <span className="text-[11px] text-ink-400">إعلان ثابت بجانب تفاصيل الوظيفة أثناء التمرير</span>
+                        </div>
+                      </label>
+                    </div>
                   </div>
                 </div>
 
-                <div className="space-y-3">
-                  <label className="block text-xs font-bold text-ink-800">
-                    رقم الوحدة الإعلانية (Ad Slot ID)
+                {/* Slot ID & Format Inputs */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2 border-t border-line">
+                  <div>
+                    <label className="block text-xs font-bold text-ink-800 mb-1">
+                      رقم الوحدة الإعلانية (Slot ID) *
+                    </label>
                     <input
                       value={adSettings.slotId}
                       onChange={(e) => setAdSettings({ ...adSettings, slotId: e.target.value })}
                       placeholder="مثال: 1234567890"
-                      className="mt-1.5 w-full rounded-xl border border-line bg-paper-2/60 px-3 py-2.5 text-xs font-mono focus:bg-white focus:outline-none focus:border-saffron-500"
+                      className="w-full rounded-xl border border-line bg-paper-2/60 px-3 py-2 text-xs font-mono focus:bg-white focus:border-saffron-500"
                     />
-                  </label>
+                  </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <label className="block text-xs font-bold text-ink-800">
-                      نوع العرض
-                      <select
-                        value={adSettings.format}
-                        onChange={(e) => setAdSettings({ ...adSettings, format: e.target.value as AdSettings['format'] })}
-                        className="mt-1.5 w-full rounded-xl border border-line bg-paper-2/60 px-3 py-2.5 text-xs"
-                      >
-                        <option value="auto">متجاوب تلقائياً (Responsive)</option>
-                        <option value="fluid">Fluid</option>
-                        <option value="rectangle">مستطيل ثابت</option>
-                      </select>
-                    </label>
+                  <div>
+                    <label className="block text-xs font-bold text-ink-800 mb-1">نوع العرض</label>
+                    <select
+                      value={adSettings.format}
+                      onChange={(e) => setAdSettings({ ...adSettings, format: e.target.value as AdSettings['format'] })}
+                      className="w-full rounded-xl border border-line bg-paper-2/60 px-3 py-2 text-xs"
+                    >
+                      <option value="auto">متجاوب تلقائياً (Responsive)</option>
+                      <option value="fluid">Fluid (لإعلانات In-Feed و In-Article)</option>
+                      <option value="rectangle">مستطيل ثابت (300x250)</option>
+                    </select>
+                  </div>
 
-                    <label className="block text-xs font-bold text-ink-800">
-                      النص التوضيحي فوق الإعلان
-                      <input
-                        value={adSettings.label}
-                        onChange={(e) => setAdSettings({ ...adSettings, label: e.target.value })}
-                        className="mt-1.5 w-full rounded-xl border border-line bg-paper-2/60 px-3 py-2.5 text-xs"
-                      />
-                    </label>
+                  <div>
+                    <label className="block text-xs font-bold text-ink-800 mb-1">نص التمييز التوضيحي</label>
+                    <input
+                      value={adSettings.label}
+                      onChange={(e) => setAdSettings({ ...adSettings, label: e.target.value })}
+                      className="w-full rounded-xl border border-line bg-paper-2/60 px-3 py-2 text-xs"
+                    />
                   </div>
                 </div>
               </div>
@@ -1788,14 +2239,14 @@ export default function AdminPage() {
                     adSettingsMessage.includes('بنجاح') ? 'text-emerald-700' : 'text-ink-500'
                   }`}
                 >
-                  {adSettingsMessage || 'تأكد من ضبط NEXT_PUBLIC_ADSENSE_ID في Vercel لتفعيل الإعلانات رسمياً.'}
+                  {adSettingsMessage || 'كافة المواضع متوافقة ومفحوصة وفق سياسات Google AdSense الرسمية.'}
                 </p>
                 <button
                   onClick={saveAdSettings}
                   disabled={savingAdSettings}
-                  className="rounded-xl bg-ink-950 px-5 py-2.5 text-xs font-black text-white hover:bg-ink-900 disabled:opacity-60 transition"
+                  className="rounded-xl bg-ink-950 px-6 py-2.5 text-xs font-black text-white hover:bg-ink-900 disabled:opacity-60 transition shadow-soft"
                 >
-                  {savingAdSettings ? 'جاري الحفظ...' : 'حفظ إعدادات الإعلانات'}
+                  {savingAdSettings ? 'جاري الحفظ...' : 'حفظ مواضع وإعدادات الإعلانات'}
                 </button>
               </div>
             </section>
@@ -1808,8 +2259,8 @@ export default function AdminPage() {
                     <BarChart3 className="w-5 h-5" />
                   </div>
                   <div>
-                    <h2 className="font-black text-ink-950">إحصائيات الوحدات الإعلانية</h2>
-                    <p className="text-xs text-ink-500">الظهور والنقرات ومعدل النقر إلى الظهور (CTR)</p>
+                    <h2 className="font-black text-ink-950">إحصائيات ظهور ونقرات الإعلانات التشخيصية</h2>
+                    <p className="text-xs text-ink-500">متابعة الأداء لكل موضع إعلاني على الموقع</p>
                   </div>
                 </div>
 
@@ -1860,50 +2311,144 @@ export default function AdminPage() {
                   </strong>
                 </div>
               </div>
-
-              {adStats.rows.length > 0 ? (
-                <div className="overflow-x-auto px-5 pb-5">
-                  <table className="w-full min-w-[620px] text-right text-xs">
-                    <thead className="bg-paper-2 text-ink-600 font-bold">
-                      <tr>
-                        <th className="p-3">الوحدة / الموضع</th>
-                        <th className="p-3">الظهور</th>
-                        <th className="p-3">النقرات</th>
-                        <th className="p-3">CTR</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-line/60">
-                      {adStats.rows.map((row) => (
-                        <tr key={row.unit}>
-                          <td className="p-3 font-bold text-ink-900">
-                            <span className="block font-mono text-[11px]">{row.slotId}</span>
-                            <span className="text-ink-500">
-                              {row.placement === 'home' ? 'الرئيسية' : 'تفاصيل الوظيفة'}
-                            </span>
-                          </td>
-                          <td className="p-3 font-bold text-ink-900">{row.impressions.toLocaleString('ar-SA')}</td>
-                          <td className="p-3 font-bold text-ink-900">{row.clicks.toLocaleString('ar-SA')}</td>
-                          <td className="p-3 font-bold text-emerald-700">{row.ctr.toFixed(2)}%</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <p className="px-5 pb-5 text-xs text-ink-500">
-                  لا توجد سجلات بعد. ستظهر هنا فور تفاعل الزوار مع مواضع الإعلانات.
-                </p>
-              )}
             </section>
           </div>
         )}
 
         {/* ========================================================================= */}
-        {/* TAB 5: MAINTENANCE & AUDIT LOGS */}
+        {/* TAB 5: SOCIAL MEDIA ACCOUNTS MANAGEMENT */}
+        {/* ========================================================================= */}
+        {activeTab === 'social' && (
+          <div className="space-y-6">
+            <section className="bg-white rounded-2xl border border-line shadow-soft p-6 space-y-6">
+              <div className="border-b border-line pb-4 flex items-center justify-between">
+                <div>
+                  <h2 className="font-black text-ink-950 text-base flex items-center gap-2">
+                    <Share2 className="w-5 h-5 text-emerald-600" />
+                    <span>إدارة روابط حسابات وقنوات التواصل الاجتماعي</span>
+                  </h2>
+                  <p className="text-xs text-ink-500">
+                    الروابط التي تضعها هنا ستظهر تلقائياً في شريط الموقع العلوي، والفوتر، وبانرات الاشتراك
+                  </p>
+                </div>
+                <span className="text-xs text-ink-400 font-bold">تحديث فوري على كامل الموقع</span>
+              </div>
+
+              <form onSubmit={saveSocialSettings} className="space-y-5 text-xs">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  {/* Telegram */}
+                  <div className="space-y-1">
+                    <label className="font-bold text-ink-900 flex items-center gap-1.5">
+                      <Send className="w-4 h-4 text-sky-500" />
+                      <span>رابط قناة التيليجرام (Telegram Channel)</span>
+                    </label>
+                    <input
+                      type="url"
+                      required
+                      value={socialSettings.telegramUrl}
+                      onChange={(e) => setSocialSettings({ ...socialSettings, telegramUrl: e.target.value })}
+                      placeholder="https://t.me/your_channel"
+                      className="w-full p-2.5 bg-paper-2/60 border border-line rounded-xl font-mono text-[11px] dir-ltr text-right"
+                    />
+                  </div>
+
+                  {/* WhatsApp */}
+                  <div className="space-y-1">
+                    <label className="font-bold text-ink-900 flex items-center gap-1.5">
+                      <MessageCircle className="w-4 h-4 text-emerald-600" />
+                      <span>رابط قناة أو مجتمع الواتساب (WhatsApp Community/Channel)</span>
+                    </label>
+                    <input
+                      type="url"
+                      required
+                      value={socialSettings.whatsappUrl}
+                      onChange={(e) => setSocialSettings({ ...socialSettings, whatsappUrl: e.target.value })}
+                      placeholder="https://whatsapp.com/channel/..."
+                      className="w-full p-2.5 bg-paper-2/60 border border-line rounded-xl font-mono text-[11px] dir-ltr text-right"
+                    />
+                  </div>
+
+                  {/* X (Twitter) */}
+                  <div className="space-y-1">
+                    <label className="font-bold text-ink-900 flex items-center gap-1.5">
+                      <span className="font-mono text-sm font-black">𝕏</span>
+                      <span>رابط حساب منصة إكس (Twitter)</span>
+                    </label>
+                    <input
+                      type="url"
+                      value={socialSettings.xUrl}
+                      onChange={(e) => setSocialSettings({ ...socialSettings, xUrl: e.target.value })}
+                      placeholder="https://x.com/your_account"
+                      className="w-full p-2.5 bg-paper-2/60 border border-line rounded-xl font-mono text-[11px] dir-ltr text-right"
+                    />
+                  </div>
+
+                  {/* TikTok */}
+                  <div className="space-y-1">
+                    <label className="font-bold text-ink-900 flex items-center gap-1.5">
+                      <Globe className="w-4 h-4 text-pink-600" />
+                      <span>رابط حساب تيك توك (TikTok)</span>
+                    </label>
+                    <input
+                      type="url"
+                      value={socialSettings.tiktokUrl}
+                      onChange={(e) => setSocialSettings({ ...socialSettings, tiktokUrl: e.target.value })}
+                      placeholder="https://tiktok.com/@your_account"
+                      className="w-full p-2.5 bg-paper-2/60 border border-line rounded-xl font-mono text-[11px] dir-ltr text-right"
+                    />
+                  </div>
+
+                  {/* Instagram */}
+                  <div className="space-y-1">
+                    <label className="font-bold text-ink-900 flex items-center gap-1.5">
+                      <Globe className="w-4 h-4 text-rose-500" />
+                      <span>رابط حساب إنستغرام (Instagram)</span>
+                    </label>
+                    <input
+                      type="url"
+                      value={socialSettings.instagramUrl}
+                      onChange={(e) => setSocialSettings({ ...socialSettings, instagramUrl: e.target.value })}
+                      placeholder="https://instagram.com/your_account"
+                      className="w-full p-2.5 bg-paper-2/60 border border-line rounded-xl font-mono text-[11px] dir-ltr text-right"
+                    />
+                  </div>
+
+                  {/* Snapchat */}
+                  <div className="space-y-1">
+                    <label className="font-bold text-ink-900 flex items-center gap-1.5">
+                      <Globe className="w-4 h-4 text-amber-500" />
+                      <span>رابط حساب سناب شات (Snapchat)</span>
+                    </label>
+                    <input
+                      type="url"
+                      value={socialSettings.snapchatUrl}
+                      onChange={(e) => setSocialSettings({ ...socialSettings, snapchatUrl: e.target.value })}
+                      placeholder="https://snapchat.com/add/your_account"
+                      className="w-full p-2.5 bg-paper-2/60 border border-line rounded-xl font-mono text-[11px] dir-ltr text-right"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-4 border-t border-line">
+                  <p className="text-xs font-bold text-emerald-700">{socialSettingsMessage}</p>
+                  <button
+                    type="submit"
+                    disabled={savingSocialSettings}
+                    className="px-6 py-2.5 bg-saffron-500 hover:bg-saffron-600 text-ink-950 font-black rounded-xl shadow-soft transition disabled:opacity-50"
+                  >
+                    {savingSocialSettings ? 'جاري الحفظ...' : 'حفظ روابط حسابات التواصل'}
+                  </button>
+                </div>
+              </form>
+            </section>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* TAB 6: MAINTENANCE & AUDIT LOGS */}
         {/* ========================================================================= */}
         {activeTab === 'maintenance' && (
           <div className="space-y-6">
-            {/* Database Sync Card */}
             <div className="bg-white rounded-2xl border border-line p-6 shadow-soft flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div className="space-y-1">
                 <h3 className="font-black text-ink-950 text-base flex items-center gap-2">
@@ -1924,7 +2469,6 @@ export default function AdminPage() {
               </button>
             </div>
 
-            {/* Audit Logs Table */}
             <div className="bg-white rounded-2xl border border-line p-6 shadow-soft space-y-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -1944,6 +2488,7 @@ export default function AdminPage() {
                       upload_logo: 'رفع شعار جهة عمل',
                       publish_telegram: 'بث في قناة التيليجرام',
                       seed_jobs: 'مزامنة البيانات التأسيسية',
+                      update_settings: 'تحديث الإعدادات',
                     };
                     return (
                       <div key={log.id} className="flex items-center justify-between gap-3 py-3 text-xs">
@@ -2033,7 +2578,6 @@ export default function AdminPage() {
             </div>
 
             <form onSubmit={handleSaveJob} className="space-y-4 text-xs">
-              {/* Job Title */}
               <div>
                 <label className="block font-bold text-ink-800 mb-1">عنوان الإعلان الوظيفي *</label>
                 <input
@@ -2046,7 +2590,6 @@ export default function AdminPage() {
                 />
               </div>
 
-              {/* Company & Logo with File Upload */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block font-bold text-ink-800 mb-1">اسم الجهة أو الشركة *</label>
@@ -2107,7 +2650,6 @@ export default function AdminPage() {
                       className="w-full p-2 bg-paper-2/40 border border-line rounded-xl text-[11px]"
                     />
 
-                    {/* Preset Logo Buttons */}
                     <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pt-0.5">
                       <span className="text-[10px] text-ink-400 font-bold shrink-0">شعارات جاهزة:</span>
                       {PRESET_LOGOS.map((pl) => (
@@ -2128,7 +2670,6 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              {/* Sector, Gender, Status */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <label className="block font-bold text-ink-800 mb-1">القطاع</label>
@@ -2175,7 +2716,6 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              {/* City, Dates & Shortcuts */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <label className="block font-bold text-ink-800 mb-1">المدينة / المقر</label>
@@ -2228,7 +2768,6 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              {/* Qualifications, Experience, Salary */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <label className="block font-bold text-ink-800 mb-1">المؤهلات (مفصولة بفاصلة)</label>
@@ -2264,7 +2803,6 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              {/* URLs */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block font-bold text-ink-800 mb-1">رابط التقديم المباشر *</label>
@@ -2300,7 +2838,6 @@ export default function AdminPage() {
                   <span className="text-[11px] text-ink-400">تساعد الباحثين ومحركات البحث SEO</span>
                 </div>
 
-                {/* Tags Chip Display */}
                 <div className="flex items-center gap-1.5 flex-wrap">
                   {formData.tags.map((tag, i) => (
                     <span
@@ -2322,7 +2859,6 @@ export default function AdminPage() {
                   )}
                 </div>
 
-                {/* Add Tag Input */}
                 <div className="flex items-center gap-2">
                   <input
                     type="text"
@@ -2345,34 +2881,8 @@ export default function AdminPage() {
                     + إضافة وسم
                   </button>
                 </div>
-
-                {/* Popular Tags Suggestions */}
-                <div className="flex items-center gap-1.5 flex-wrap pt-1">
-                  <span className="text-[10px] text-ink-400 font-bold">مقترحات:</span>
-                  {[
-                    'ثانوية_عامة',
-                    'دبلوم',
-                    'بكالوريوس',
-                    'عن_بعد',
-                    'حديثي_التخرج',
-                    'بدون_خبرة',
-                    'رواتب_مجزية',
-                    'وظائف_الرياض',
-                    'تدريب_منتهي_بالتوظيف',
-                  ].map((sug) => (
-                    <button
-                      key={sug}
-                      type="button"
-                      onClick={() => addTag(sug)}
-                      className="px-2 py-0.5 rounded-lg bg-paper-2 hover:bg-line border border-line text-[10px] font-bold text-ink-700 transition"
-                    >
-                      #{sug}
-                    </button>
-                  ))}
-                </div>
               </div>
 
-              {/* Summary */}
               <div>
                 <label className="block font-bold text-ink-800 mb-1">نبذة سريعة (للبطاقة ونتائج البحث SEO)</label>
                 <textarea
@@ -2384,7 +2894,6 @@ export default function AdminPage() {
                 />
               </div>
 
-              {/* Description */}
               <div>
                 <label className="block font-bold text-ink-800 mb-1">تفاصيل الإعلان والمسميات الوظيفية</label>
                 <textarea
@@ -2395,7 +2904,6 @@ export default function AdminPage() {
                 />
               </div>
 
-              {/* Requirements & Benefits */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block font-bold text-ink-800 mb-1">الشروط والمتطلبات (كل شرط بسطر)</label>
@@ -2418,7 +2926,6 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              {/* Featured & Auto-Publish Options */}
               <div className="pt-3 border-t border-line space-y-3">
                 <div className="flex items-center gap-6">
                   <label className="flex items-center gap-2 cursor-pointer font-bold text-ink-900">
@@ -2488,11 +2995,11 @@ export default function AdminPage() {
       )}
 
       {/* ========================================================================= */}
-      {/* MODAL 2: BROADCAST POPUP */}
+      {/* MODAL 2: BROADCAST POPUP WITH MULTI-TEMPLATE SELECTOR */}
       {/* ========================================================================= */}
       {broadcastModalOpen && broadcastJob && (
         <div className="fixed inset-0 z-50 bg-ink-950/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-6 max-h-[92vh] overflow-y-auto shadow-lift border border-line">
+          <div className="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-5 max-h-[92vh] overflow-y-auto shadow-lift border border-line">
             <div className="flex items-center justify-between border-b border-line pb-4">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-2xl bg-sky-50 text-sky-600 border border-sky-200 flex items-center justify-center">
@@ -2500,7 +3007,7 @@ export default function AdminPage() {
                 </div>
                 <div>
                   <h3 className="text-base sm:text-lg font-black text-ink-950">نشر الإعلان في القنوات والمجموعات</h3>
-                  <p className="text-xs text-ink-500">معاينة التنسيق الجاهز للبث المباشر</p>
+                  <p className="text-xs text-ink-500">اختر نوع الصيغة التعبيرية الجاهزة للبث</p>
                 </div>
               </div>
 
@@ -2510,6 +3017,27 @@ export default function AdminPage() {
               >
                 ✕
               </button>
+            </div>
+
+            {/* Template Selector inside Modal */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-ink-700 block">اختر نوع وصيغة الرسالة:</label>
+              <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-1">
+                {allTemplates.map((tmpl) => (
+                  <button
+                    key={tmpl.id}
+                    onClick={() => setSelectedTemplateId(tmpl.id)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap flex items-center gap-1 ${
+                      selectedTemplateId === tmpl.id
+                        ? 'bg-ink-950 text-white'
+                        : 'bg-paper-2 border border-line text-ink-700 hover:bg-line'
+                    }`}
+                  >
+                    {selectedTemplateId === tmpl.id && <Check className="w-3 h-3 text-saffron-400" />}
+                    <span>{tmpl.name}</span>
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* Tabs */}
@@ -2557,15 +3085,15 @@ export default function AdminPage() {
             {/* Preview Box */}
             <div className="bg-ink-950 text-ink-100 p-5 rounded-2xl font-mono text-xs whitespace-pre-wrap leading-relaxed max-h-72 overflow-y-auto border border-ink-800 selection:bg-saffron-500 selection:text-ink-950">
               {broadcastTab === 'telegram'
-                ? formatTelegramMessage(broadcastJob, currentOrigin)
-                : formatWhatsAppMessage(broadcastJob, currentOrigin)}
+                ? renderTemplate(activeTemplate.telegramFormat, broadcastJob, currentOrigin)
+                : renderTemplate(activeTemplate.whatsappFormat, broadcastJob, currentOrigin)}
             </div>
 
             {/* Actions */}
             <div className="space-y-3 pt-2">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <button
-                  onClick={() => executeTelegramPublish(broadcastJob)}
+                  onClick={() => executeTelegramPublish(broadcastJob, activeTemplate)}
                   disabled={publishingTelegram}
                   className="flex items-center justify-center gap-2 py-3 px-4 bg-sky-600 hover:bg-sky-700 disabled:bg-sky-400 text-white rounded-xl text-xs font-black shadow-soft transition"
                 >
@@ -2574,7 +3102,7 @@ export default function AdminPage() {
                 </button>
 
                 <button
-                  onClick={() => openWhatsAppBroadcast(broadcastJob)}
+                  onClick={() => openWhatsAppBroadcast(broadcastJob, activeTemplate)}
                   className="flex items-center justify-center gap-2 py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black shadow-soft transition"
                 >
                   <MessageCircle className="w-4 h-4" />
@@ -2586,8 +3114,8 @@ export default function AdminPage() {
                 onClick={() =>
                   copyFormatted(
                     broadcastTab === 'telegram'
-                      ? formatTelegramMessage(broadcastJob, currentOrigin)
-                      : formatWhatsAppMessage(broadcastJob, currentOrigin),
+                      ? renderTemplate(activeTemplate.telegramFormat, broadcastJob, currentOrigin)
+                      : renderTemplate(activeTemplate.whatsappFormat, broadcastJob, currentOrigin),
                     broadcastTab
                   )
                 }

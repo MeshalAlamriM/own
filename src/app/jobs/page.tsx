@@ -4,6 +4,7 @@ import { getAllJobs } from '@/data/store';
 import { JobSector, GenderType, JobStatus } from '@/types/job';
 import HomeJobFeed from '@/components/HomeJobFeed';
 import PageHeader from '@/components/PageHeader';
+import AdBanner from '@/components/AdBanner';
 import { Briefcase } from 'lucide-react';
 
 export const metadata: Metadata = {
@@ -49,7 +50,8 @@ async function JobsFeedContainer({ searchParams }: JobsPageProps) {
         compact
       />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12 space-y-6">
+        <AdBanner placement="sector-top" label="إعلان" />
         <HomeJobFeed
           initialJobs={jobs}
           defaultSector={params.sector || 'all'}

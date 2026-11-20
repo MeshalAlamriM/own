@@ -7,36 +7,68 @@ interface AdBannerProps {
   placement: AdPlacement;
   className?: string;
   label?: string;
+  slotId?: string;
 }
 
-export default function AdBanner({ placement, className = '', label }: AdBannerProps) {
+function isPlacementEnabled(placement: AdPlacement, settings: AdSettings): boolean {
+  if (!settings.enabled) return false;
+  switch (placement) {
+    case 'home-top':
+      return settings.homeTop;
+    case 'home-infeed':
+      return settings.homeInFeed;
+    case 'home-bottom':
+      return settings.homeBottom;
+    case 'job-detail-top':
+      return settings.jobDetailTop;
+    case 'job-detail-content':
+      return settings.jobDetailInArticle;
+    case 'job-detail-before-apply':
+      return settings.jobDetailBeforeApply;
+    case 'job-detail-bottom':
+      return settings.jobDetailBottom;
+    case 'sector-top':
+      return settings.sectorPagesTop;
+    case 'sector-infeed':
+      return settings.sectorPagesInFeed;
+    case 'sidebar-sticky':
+      return settings.sidebarSticky;
+    case 'home':
+      return settings.homeTop || (settings.showOnHome !== false);
+    case 'job-detail':
+      return settings.jobDetailTop || (settings.showOnJobDetail !== false);
+    default:
+      return true;
+  }
+}
+
+export default function AdBanner({ placement, className = '', label, slotId }: AdBannerProps) {
   const [settings, setSettings] = useState<AdSettings | null>(null);
   const publisherId = process.env.NEXT_PUBLIC_ADSENSE_ID;
   const adRef = useRef<HTMLModElement | null>(null);
 
   useEffect(() => {
     fetch('/api/settings/ads')
-      .then(res => res.json())
-      .then(data => setSettings(data.success ? data.data : DEFAULT_AD_SETTINGS))
+      .then((res) => res.json())
+      .then((data) => setSettings(data.success ? data.data : DEFAULT_AD_SETTINGS))
       .catch(() => setSettings(DEFAULT_AD_SETTINGS));
   }, []);
 
   useEffect(() => {
     if (!publisherId || !settings || !settings.enabled) return;
-    if (placement === 'home' && !settings.showOnHome) return;
-    if (placement === 'job-detail' && !settings.showOnJobDetail) return;
+    if (!isPlacementEnabled(placement, settings)) return;
 
-    const slotId = settings.slotId;
+    const activeSlotId = slotId || settings.slotId;
     const sendEvent = (eventType: 'impression' | 'click') => {
       fetch('/api/ads/event', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ eventType, placement, slotId, pagePath: window.location.pathname }),
+        body: JSON.stringify({ eventType, placement, slotId: activeSlotId, pagePath: window.location.pathname }),
         keepalive: true,
       }).catch(() => undefined);
     };
 
-    const impressionKey = `ad-impression:${placement}:${slotId}:${window.location.pathname}`;
+    const impressionKey = `ad-impression:${placement}:${activeSlotId}:${window.location.pathname}`;
     const element = adRef.current;
     if (!element) return;
 
@@ -46,25 +78,29 @@ export default function AdBanner({ placement, className = '', label }: AdBannerP
       sendEvent('impression');
     };
 
-    const observer = 'IntersectionObserver' in window
-      ? new IntersectionObserver(entries => {
-          if (entries.some(entry => entry.isIntersecting && entry.intersectionRatio >= 0.5)) {
-            markImpression();
-            observer?.disconnect();
-          }
-        }, { threshold: [0.5] })
-      : null;
+    const observer =
+      'IntersectionObserver' in window
+        ? new IntersectionObserver(
+            (entries) => {
+              if (entries.some((entry) => entry.isIntersecting && entry.intersectionRatio >= 0.5)) {
+                markImpression();
+                observer?.disconnect();
+              }
+            },
+            { threshold: [0.5] }
+          )
+        : null;
+
     observer?.observe(element);
     if (!observer) markImpression();
 
-    // AdSense owns the iframe, so this captures only clicks the browser exposes to the host page.
     const onClick = () => sendEvent('click');
     element.addEventListener('click', onClick);
     return () => {
       observer?.disconnect();
       element.removeEventListener('click', onClick);
     };
-  }, [publisherId, placement, settings]);
+  }, [publisherId, placement, settings, slotId]);
 
   useEffect(() => {
     try {
@@ -77,10 +113,10 @@ export default function AdBanner({ placement, className = '', label }: AdBannerP
   }, [publisherId, settings]);
 
   if (!settings || !settings.enabled) return null;
-  if (placement === 'home' && !settings.showOnHome) return null;
-  if (placement === 'job-detail' && !settings.showOnJobDetail) return null;
+  if (!isPlacementEnabled(placement, settings)) return null;
 
   const displayLabel = label || settings.label;
+  const activeSlotId = slotId || settings.slotId;
 
   if (publisherId) {
     return (
@@ -91,7 +127,7 @@ export default function AdBanner({ placement, className = '', label }: AdBannerP
           className="adsbygoogle"
           style={{ display: 'block' }}
           data-ad-client={publisherId}
-          data-ad-slot={settings.slotId}
+          data-ad-slot={activeSlotId}
           data-ad-format={settings.format}
           data-full-width-responsive="true"
         />
@@ -99,12 +135,16 @@ export default function AdBanner({ placement, className = '', label }: AdBannerP
     );
   }
 
+  // Visual placeholder in development/preview when AdSense ID is not yet configured
   return (
-    <div className={`my-6 mx-auto max-w-4xl overflow-hidden rounded-2xl border border-dashed border-ink-200 bg-paper-2/60 p-4 text-center ${className}`}>
-      <span className="text-[11px] text-ink-400 block mb-1 font-medium">{displayLabel}</span>
-      <div className="py-5 flex flex-col items-center justify-center text-ink-400 text-xs">
-        <span className="font-semibold text-ink-600 mb-0.5">مساحة إعلانية (Google AdSense)</span>
-        <span className="text-[11px] text-ink-400">ستظهر الإعلانات هنا تلقائياً فور ربط معرف الناشر</span>
+    <div className={`my-6 text-center ${className}`}>
+      <div className="mx-auto max-w-4xl rounded-2xl border border-dashed border-line bg-paper-2/60 p-4 sm:p-5 text-center">
+        <span className="text-[10px] font-bold text-ink-400 block mb-1 tracking-wider uppercase">
+          {displayLabel} • موضع AdSense ({placement})
+        </span>
+        <p className="text-xs text-ink-500 font-bold">
+          موضع إعلاني متوافق 100% مع معايير Google AdSense (يظهر الإعلان الفعلي فور وضع معرف AdSense)
+        </p>
       </div>
     </div>
   );

@@ -3,6 +3,7 @@ import { getAllJobs } from '@/data/store';
 import JobCard from '@/components/JobCard';
 import TelegramBanner from '@/components/TelegramBanner';
 import PageHeader from '@/components/PageHeader';
+import AdBanner from '@/components/AdBanner';
 import { matchesSector } from '@/lib/ui';
 import { CheckCircle2, CalendarClock, FileCheck2, UserCheck } from 'lucide-react';
 
@@ -45,7 +46,8 @@ export default async function ResultsPage() {
         </ul>
       </PageHeader>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-14">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-10">
+        <AdBanner placement="sector-top" label="إعلان" />
         <section>
           <div className="mb-7">
             <p className="text-[12px] font-bold text-rose-600 mb-1.5">الأحدث أولاً</p>

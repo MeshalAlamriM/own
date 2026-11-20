@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'غير مصرح لك بهذه العملية' }, { status: 401 });
     }
     const body = await request.json();
-    const { jobId, siteUrl } = body;
+    const { jobId, siteUrl, customText } = body;
 
     if (!jobId) {
       return NextResponse.json(
@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
 
     const effectiveSiteUrl = siteUrl || process.env.NEXT_PUBLIC_SITE_URL || 'https://wadhaef-alyoum.sa';
 
-    const result = await sendTelegramBroadcast(job, activeToken, activeChannel, effectiveSiteUrl);
+    const result = await sendTelegramBroadcast(job, activeToken, activeChannel, effectiveSiteUrl, customText);
 
     if (!result.success) {
       return NextResponse.json(
@@ -60,9 +60,12 @@ export async function POST(request: NextRequest) {
       data: result.data,
     });
   } catch (error: any) {
-    console.error('Error publishing to Telegram:', error);
+    console.error('API Error broadcasting to Telegram:', error);
     return NextResponse.json(
-      { success: false, error: error?.message || 'حدث خطأ غير متوقع أثناء النشر' },
+      {
+        success: false,
+        error: error?.message || 'حدث خطأ في الخادم أثناء محاولة النشر',
+      },
       { status: 500 }
     );
   }

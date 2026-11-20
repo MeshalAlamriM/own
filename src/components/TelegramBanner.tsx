@@ -1,4 +1,8 @@
-import { Send, ArrowUpLeft, BellRing } from 'lucide-react';
+'use client';
+
+import { useState, useEffect } from 'react';
+import { Send, BellRing } from 'lucide-react';
+import { DEFAULT_SOCIAL_SETTINGS, SocialSettings } from '@/lib/social-settings';
 
 function WhatsAppIcon({ className = 'w-4 h-4' }: { className?: string }) {
   return (
@@ -9,6 +13,17 @@ function WhatsAppIcon({ className = 'w-4 h-4' }: { className?: string }) {
 }
 
 export default function TelegramBanner() {
+  const [social, setSocial] = useState<SocialSettings>(DEFAULT_SOCIAL_SETTINGS);
+
+  useEffect(() => {
+    fetch('/api/settings/social')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && data.data) setSocial(data.data);
+      })
+      .catch(() => undefined);
+  }, []);
+
   return (
     <section
       aria-label="اشترك في تنبيهات الوظائف"
@@ -42,23 +57,22 @@ export default function TelegramBanner() {
 
         <div className="flex flex-col sm:flex-row lg:flex-col xl:flex-row gap-3 shrink-0">
           <a
-            href="https://t.me"
+            href={social.telegramUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center justify-center gap-2.5 min-h-[52px] px-6 rounded-xl bg-saffron-400 text-ink-950 text-[14.5px] font-bold hover:bg-saffron-300 transition-colors"
           >
             <Send className="w-5 h-5" />
-            <span>قناة تيليجرام</span>
-            <ArrowUpLeft className="w-4 h-4" />
+            <span>انضم لقناة تيليجرام</span>
           </a>
           <a
-            href="https://whatsapp.com/channel"
+            href={social.whatsappUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center justify-center gap-2.5 min-h-[52px] px-6 rounded-xl bg-white/10 ring-1 ring-white/20 text-white text-[14.5px] font-semibold hover:bg-white/15 transition-colors"
+            className="inline-flex items-center justify-center gap-2.5 min-h-[52px] px-6 rounded-xl border border-white/20 bg-white/10 text-white text-[14.5px] font-bold hover:bg-white/15 transition-colors"
           >
-            <WhatsAppIcon className="w-5 h-5" />
-            <span>قناة واتساب</span>
+            <WhatsAppIcon className="w-5 h-5 text-emerald-400" />
+            <span>مجتمع واتساب الرسمي</span>
           </a>
         </div>
       </div>

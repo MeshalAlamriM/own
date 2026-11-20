@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
   Bookmark,
   Send,
@@ -19,16 +19,26 @@ import {
   Home,
   CornerDownLeft,
 } from 'lucide-react';
+import { DEFAULT_SOCIAL_SETTINGS, SocialSettings } from '@/lib/social-settings';
 
 const navLinks = [
-  { href: '/', label: 'الرئيسية', icon: Home },
-  { href: '/jobs?sector=government', label: 'حكومية', icon: ShieldCheck },
-  { href: '/jobs?sector=military', label: 'عسكرية', icon: Flame },
-  { href: '/jobs?sector=corporate', label: 'شركات', icon: Building2 },
-  { href: '/training', label: 'تدريب', icon: GraduationCap },
-  { href: '/results', label: 'نتائج القبول', icon: CheckCircle2 },
-  { href: '/jobs?sector=remote', label: 'عن بُعد', icon: Laptop },
+  { href: '/', label: 'الرئيسية', icon: Home, sector: null },
+  { href: '/jobs?sector=government', label: 'حكومية', icon: ShieldCheck, sector: 'government' },
+  { href: '/jobs?sector=military', label: 'عسكرية', icon: Flame, sector: 'military' },
+  { href: '/jobs?sector=corporate', label: 'شركات', icon: Building2, sector: 'corporate' },
+  { href: '/training', label: 'تدريب', icon: GraduationCap, sector: 'training' },
+  { href: '/results', label: 'نتائج القبول', icon: CheckCircle2, sector: 'results' },
+  { href: '/jobs?sector=remote', label: 'عن بُعد', icon: Laptop, sector: 'remote' },
 ];
+
+function SearchParamsSync({ onSectorChange }: { onSectorChange: (s: string | null) => void }) {
+  const searchParams = useSearchParams();
+  const sector = searchParams?.get('sector') || null;
+  useEffect(() => {
+    onSectorChange(sector);
+  }, [sector, onSectorChange]);
+  return null;
+}
 
 const quickSearches = ['أرامكو', 'الحرس الوطني', 'ثانوية', 'نسائية', 'الرياض', 'جدارات'];
 
@@ -41,7 +51,36 @@ export default function Header() {
   const [searchValue, setSearchValue] = useState('');
   const [savedCount, setSavedCount] = useState(0);
   const [scrolled, setScrolled] = useState(false);
+  const [currentSector, setCurrentSector] = useState<string | null>(null);
+  const [social, setSocial] = useState<SocialSettings>(DEFAULT_SOCIAL_SETTINGS);
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Load Social Settings
+  useEffect(() => {
+    fetch('/api/settings/social')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && data.data) setSocial(data.data);
+      })
+      .catch(() => undefined);
+  }, []);
+
+  // Update current sector from URL query parameter safely
+  useEffect(() => {
+    const checkSector = () => {
+      try {
+        if (typeof window !== 'undefined') {
+          const params = new URLSearchParams(window.location.search);
+          setCurrentSector(params.get('sector'));
+        }
+      } catch {
+        setCurrentSector(null);
+      }
+    };
+    checkSector();
+    window.addEventListener('popstate', checkSector);
+    return () => window.removeEventListener('popstate', checkSector);
+  }, [pathname]);
 
   // Saved jobs counter
   useEffect(() => {
@@ -117,15 +156,37 @@ export default function Header() {
     [router]
   );
 
-  const isActive = (href: string) => {
-    const linkPath = href.split('?')[0];
-    if (linkPath === '/') return pathname === '/';
-    if (linkPath === '/jobs') return false; // sector links share /jobs; avoid highlighting all of them
-    return pathname === linkPath || pathname.startsWith(`${linkPath}/`);
+  const handleNavClick = (sector: string | null) => {
+    setCurrentSector(sector);
+    setMobileOpen(false);
+  };
+
+  // Accurate active link detection for all sections
+  const isActive = (href: string, sector: string | null) => {
+    if (href === '/') {
+      return pathname === '/' && !currentSector;
+    }
+
+    if (href === '/training') {
+      return pathname === '/training' || (pathname === '/jobs' && currentSector === 'training');
+    }
+
+    if (href === '/results') {
+      return pathname === '/results' || (pathname === '/jobs' && currentSector === 'results');
+    }
+
+    if (sector) {
+      return pathname === '/jobs' && currentSector === sector;
+    }
+
+    return pathname === href;
   };
 
   return (
     <>
+      <Suspense fallback={null}>
+        <SearchParamsSync onSectorChange={setCurrentSector} />
+      </Suspense>
       <header
         className={`sticky top-0 z-50 transition-shadow duration-300 ${
           scrolled ? 'shadow-[0_10px_30px_-12px_rgba(20,24,36,0.25)]' : ''
@@ -146,7 +207,7 @@ export default function Header() {
 
             <div className="flex items-center gap-5 shrink-0">
               <a
-                href="https://t.me"
+                href={social.telegramUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 hover:text-white transition-colors"
@@ -155,7 +216,7 @@ export default function Header() {
                 <span>تيليجرام</span>
               </a>
               <a
-                href="https://whatsapp.com"
+                href={social.whatsappUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 hover:text-white transition-colors"
@@ -176,20 +237,25 @@ export default function Header() {
               {/* Logo */}
               <Link href="/" className="flex items-center gap-3 group shrink-0" aria-label="وظيفتك اليوم - الرئيسية">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/logo-full.png" alt="وظيفتك اليوم" className="w-[126px] sm:w-[142px] h-auto object-contain group-hover:scale-[1.02] transition-transform duration-300" />
+                <img
+                  src="/logo-full.png"
+                  alt="وظيفتك اليوم"
+                  className="w-[126px] sm:w-[142px] h-auto object-contain group-hover:scale-[1.02] transition-transform duration-300"
+                />
               </Link>
 
               {/* Desktop nav */}
               <nav className="hidden lg:flex items-center gap-0.5" aria-label="التنقل الرئيسي">
                 {navLinks.map((link) => {
-                  const active = isActive(link.href);
+                  const active = isActive(link.href, link.sector);
                   return (
                     <Link
                       key={link.href}
                       href={link.href}
+                      onClick={() => handleNavClick(link.sector)}
                       aria-current={active ? 'page' : undefined}
                       className={`relative px-3.5 py-2 text-[14px] font-semibold rounded-lg transition-colors ${
-                        active ? 'text-ink-950' : 'text-ink-500 hover:text-ink-950 hover:bg-ink-950/[0.04]'
+                        active ? 'text-ink-950 font-black' : 'text-ink-500 hover:text-ink-950 hover:bg-ink-950/[0.04]'
                       }`}
                     >
                       {link.label}
@@ -211,7 +277,10 @@ export default function Header() {
                 >
                   <Search className="w-4 h-4" />
                   <span className="text-[13px] flex-1 text-start">ابحث عن وظيفة…</span>
-                  <kbd className="hidden xl:inline-flex items-center h-6 px-1.5 rounded-md bg-paper-2 border border-line text-[11px] font-medium text-ink-500" dir="ltr">
+                  <kbd
+                    className="hidden xl:inline-flex items-center h-6 px-1.5 rounded-md bg-paper-2 border border-line text-[11px] font-medium text-ink-500"
+                    dir="ltr"
+                  >
                     Ctrl K
                   </kbd>
                 </button>
@@ -240,7 +309,7 @@ export default function Header() {
                 </Link>
 
                 <a
-                  href="https://t.me"
+                  href={social.telegramUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="hidden sm:inline-flex items-center gap-2 h-10 px-4 rounded-xl bg-ink-950 text-white text-[13px] font-semibold hover:bg-ink-800 transition-colors"
@@ -249,14 +318,15 @@ export default function Header() {
                   <ArrowUpLeft className="w-4 h-4 text-saffron-400" />
                 </a>
 
+                {/* Mobile menu toggle */}
                 <button
                   type="button"
-                  onClick={() => setMobileOpen(true)}
-                  className="lg:hidden inline-flex items-center justify-center w-10 h-10 rounded-xl bg-ink-950 text-white"
-                  aria-label="فتح القائمة"
+                  onClick={() => setMobileOpen(!mobileOpen)}
+                  className="lg:hidden inline-flex items-center justify-center w-10 h-10 rounded-xl border border-line bg-white text-ink-950"
                   aria-expanded={mobileOpen}
+                  aria-label={mobileOpen ? 'إغلاق القائمة' : 'فتح القائمة'}
                 >
-                  <Menu className="w-5 h-5" />
+                  {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
                 </button>
               </div>
             </div>
@@ -266,42 +336,46 @@ export default function Header() {
 
       {/* Mobile drawer */}
       {mobileOpen && (
-        <div className="fixed inset-0 z-[60] lg:hidden" role="dialog" aria-modal="true" aria-label="القائمة">
+        <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true">
           <div
-            className="absolute inset-0 bg-ink-950/60 backdrop-blur-sm animate-fade-in"
+            className="fixed inset-0 bg-ink-950/50 backdrop-blur-xs animate-fade-in"
             onClick={() => setMobileOpen(false)}
           />
-          <div className="absolute top-0 bottom-0 right-0 w-[86%] max-w-sm bg-paper shadow-2xl flex flex-col animate-slide-down">
-            <div className="flex items-center justify-between h-[68px] px-5 border-b border-line">
-              <div className="flex items-center gap-3">
+          <div className="fixed inset-y-0 start-0 w-[84%] max-w-sm bg-paper shadow-2xl flex flex-col border-e border-line animate-slide-down">
+            <div className="p-4 border-b border-line flex items-center justify-between">
+              <Link href="/" onClick={() => setMobileOpen(false)}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/logo-full.png" alt="وظيفتك اليوم" className="w-[128px] h-auto object-contain" />
-              </div>
+                <img src="/logo-full.png" alt="وظيفتك اليوم" className="w-32 h-auto" />
+              </Link>
               <button
                 type="button"
                 onClick={() => setMobileOpen(false)}
-                className="w-10 h-10 rounded-xl border border-line bg-white flex items-center justify-center text-ink-700"
-                aria-label="إغلاق القائمة"
+                className="w-9 h-9 rounded-lg border border-line flex items-center justify-center text-ink-500"
+                aria-label="إغلاق"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <nav className="flex-1 overflow-y-auto px-4 py-4 space-y-1">
+            <nav className="flex-1 overflow-y-auto p-3 space-y-1" aria-label="تنقل الجوال">
               {navLinks.map((link) => {
+                const active = isActive(link.href, link.sector);
                 const Icon = link.icon;
-                const active = isActive(link.href);
                 return (
                   <Link
                     key={link.href}
                     href={link.href}
-                    className={`flex items-center gap-3 px-3.5 py-3 rounded-xl text-[15px] font-semibold transition-colors ${
-                      active ? 'bg-ink-950 text-white' : 'text-ink-800 hover:bg-paper-2'
+                    onClick={() => handleNavClick(link.sector)}
+                    aria-current={active ? 'page' : undefined}
+                    className={`flex items-center gap-3 px-3.5 py-3 rounded-xl text-[14.5px] font-bold transition-colors ${
+                      active
+                        ? 'bg-saffron-100/70 text-ink-950 border-r-4 border-saffron-500 font-black'
+                        : 'text-ink-700 hover:bg-white hover:text-ink-950'
                     }`}
                   >
                     <span
                       className={`w-9 h-9 rounded-lg flex items-center justify-center ${
-                        active ? 'bg-white/10 text-saffron-400' : 'bg-white border border-line text-ink-600'
+                        active ? 'bg-saffron-400 text-ink-950' : 'bg-white border border-line text-ink-600'
                       }`}
                     >
                       <Icon className="w-[18px] h-[18px]" />
@@ -314,7 +388,7 @@ export default function Header() {
 
             <div className="p-4 border-t border-line space-y-2.5">
               <a
-                href="https://t.me"
+                href={social.telegramUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center justify-center gap-2 w-full h-12 rounded-xl bg-saffron-400 text-ink-950 text-[14px] font-bold hover:bg-saffron-300 transition-colors"
@@ -324,6 +398,7 @@ export default function Header() {
               </a>
               <Link
                 href="/saved"
+                onClick={() => setMobileOpen(false)}
                 className="flex items-center justify-center gap-2 w-full h-12 rounded-xl border border-line bg-white text-ink-800 text-[14px] font-semibold"
               >
                 <Bookmark className="w-4 h-4" />
@@ -336,7 +411,12 @@ export default function Header() {
 
       {/* Search overlay */}
       {searchOpen && (
-        <div className="fixed inset-0 z-[70] flex items-start justify-center px-4 pt-[12vh]" role="dialog" aria-modal="true" aria-label="بحث">
+        <div
+          className="fixed inset-0 z-[70] flex items-start justify-center px-4 pt-[12vh]"
+          role="dialog"
+          aria-modal="true"
+          aria-label="بحث"
+        >
           <div
             className="absolute inset-0 bg-ink-950/60 backdrop-blur-sm animate-fade-in"
             onClick={() => setSearchOpen(false)}

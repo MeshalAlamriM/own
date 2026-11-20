@@ -196,6 +196,8 @@ export default async function JobDetailPage({ params }: JobPageProps) {
               })}
             </section>
 
+            <AdBanner placement="job-detail-top" label="إعلان" />
+
             <article className="rounded-3xl bg-white border border-line p-6 sm:p-9 space-y-10">
               <div>
                 <h2 className="text-[20px] font-bold text-ink-950 flex items-center gap-3">
@@ -222,6 +224,8 @@ export default async function JobDetailPage({ params }: JobPageProps) {
                 </div>
               )}
 
+              <AdBanner placement="job-detail-content" label="إعلان" />
+
               {job.benefits && job.benefits.length > 0 && (
                 <div>
                   <h2 className="text-[20px] font-bold text-ink-950 flex items-center gap-3">
@@ -240,7 +244,7 @@ export default async function JobDetailPage({ params }: JobPageProps) {
               )}
             </article>
 
-            <AdBanner placement="job-detail" label="إعلان" />
+            <AdBanner placement="job-detail-bottom" label="إعلان" />
 
             <ShareButtons title={job.title} />
 

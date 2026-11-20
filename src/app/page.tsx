@@ -312,6 +312,7 @@ export default async function HomePage() {
         )}
 
         {/* ======================= القائمة ======================= */}
+        <AdBanner placement="home-top" label="إعلان" />
         <HomeJobFeed initialJobs={jobs} />
 
         {/* ======================= كيف نعمل ======================= */}
@@ -384,7 +385,7 @@ export default async function HomePage() {
           </section>
         )}
 
-        <AdBanner placement="home" label="إعلان" />
+        <AdBanner placement="home-bottom" label="إعلان" />
 
         <TelegramBanner />
 
