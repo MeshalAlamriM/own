@@ -608,6 +608,8 @@ export default function AdminPage() {
         loadAdSettings();
         loadAdStats();
         loadSocialSettings();
+        loadHomeStatsSettings();
+        loadLogoLibrary();
         setPin('');
         setPinError(false);
       })
@@ -681,6 +683,8 @@ export default function AdminPage() {
   };
 
   const openAddModal = () => {
+    loadLogoLibrary();
+    setLogoAssetName('');
     setEditingJob(null);
     setDuplicatingJob(false);
     removeLogoFile();
@@ -714,6 +718,8 @@ export default function AdminPage() {
   };
 
   const openEditModal = (job: Job) => {
+    loadLogoLibrary();
+    setLogoAssetName('');
     setEditingJob(job);
     setDuplicatingJob(false);
     removeLogoFile();
@@ -2701,11 +2707,27 @@ export default function AdminPage() {
                   <div className="space-y-2">
                     <input
                       type="text"
+                      list="saved-logo-name-options"
                       value={logoAssetName}
-                      onChange={(e) => setLogoAssetName(e.target.value)}
+                      onChange={(e) => {
+                        const name = e.target.value;
+                        setLogoAssetName(name);
+                        const saved = logoLibrary.find(
+                          (item) => item.name.toLowerCase() === name.toLowerCase()
+                        );
+                        if (saved) {
+                          removeLogoFile();
+                          setFormData((prev) => ({ ...prev, companyLogo: saved.url }));
+                        }
+                      }}
                       placeholder="اسم الشعار للحفظ وإظهاره لاحقًا، مثال: أرامكو"
                       className="w-full p-2 bg-paper-2/40 border border-line rounded-xl text-[11px]"
                     />
+                    <datalist id="saved-logo-name-options">
+                      {logoLibrary.map((item) => (
+                        <option key={item.url} value={item.name} />
+                      ))}
+                    </datalist>
                     <div className="flex items-center gap-2">
                       <label className="flex-1 flex items-center justify-between gap-2 px-3 py-2 border border-dashed border-saffron-300 bg-saffron-50/50 hover:bg-saffron-50 rounded-xl cursor-pointer text-[11px] font-bold text-saffron-900 transition">
                         <span className="truncate">
