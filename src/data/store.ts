@@ -406,6 +406,7 @@ export async function updateJob(id: string, patch: Partial<Job>): Promise<Job | 
       if (patch.sourceUrl) updates.source_url = patch.sourceUrl;
       if (patch.featured !== undefined) updates.featured = patch.featured;
       if (patch.urgent !== undefined) updates.urgent = patch.urgent;
+      if (patch.tags !== undefined) updates.tags = patch.tags;
 
       const { data, error } = await supabase
         .from('jobs')
