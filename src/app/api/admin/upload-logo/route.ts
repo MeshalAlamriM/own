@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { isAdminAuthenticated } from '@/lib/admin-auth';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { recordAuditLog } from '@/lib/audit';
+import crypto from 'node:crypto';
 
 export const runtime = 'nodejs';
 
@@ -35,6 +36,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: false, error: 'تعذر قراءة الملف المرفوع' }, { status: 400 });
   }
   const file = formData.get('file');
+  const requestedName = String(formData.get('name') || '').trim().slice(0, 100);
   if (!(file instanceof File)) {
     return NextResponse.json({ success: false, error: 'ملف الشعار مطلوب' }, { status: 400 });
   }
@@ -59,18 +61,38 @@ export async function POST(request: NextRequest) {
   }
 
   const extension = detectedType === 'image/jpeg' ? 'jpg' : detectedType === 'image/png' ? 'png' : 'webp';
-  const path = `logos/${crypto.randomUUID()}.${extension}`;
+  const hash = crypto.createHash('sha256').update(bytes).digest('hex');
+  const path = `logos/${hash}.${extension}`;
   const { error: uploadError } = await supabase.storage.from(BUCKET).upload(path, bytes, {
     contentType: detectedType,
     cacheControl: '31536000',
     upsert: false,
   });
-  if (uploadError) {
+  if (uploadError && !/already exists|duplicate/i.test(uploadError.message)) {
     console.error('Logo upload failed:', uploadError.message);
     return NextResponse.json({ success: false, error: 'فشل رفع الشعار، حاول مرة أخرى' }, { status: 500 });
   }
 
   const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
+  const displayName = requestedName || file.name.replace(/\.[^.]+$/, '').trim() || 'شعار جهة';
+  const libraryKey = 'company_logo_library';
+  const { data: existingSetting } = await supabase
+    .from('site_settings')
+    .select('value')
+    .eq('key', libraryKey)
+    .maybeSingle();
+  const oldLibrary = Array.isArray(existingSetting?.value)
+    ? existingSetting.value as Array<{ name: string; url: string; path: string }>
+    : [];
+  const nextLibrary = [
+    { name: displayName, url: data.publicUrl, path },
+    ...oldLibrary.filter((item) => item.url !== data.publicUrl),
+  ].slice(0, 500);
+  await supabase.from('site_settings').upsert({
+    key: libraryKey,
+    value: nextLibrary,
+    updated_at: new Date().toISOString(),
+  });
   await recordAuditLog('upload_logo', undefined, { path, fileType: detectedType, size: file.size });
   return NextResponse.json({ success: true, url: data.publicUrl });
 }

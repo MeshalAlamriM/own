@@ -180,6 +180,9 @@ export default function AdminPage() {
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreviewUrl, setLogoPreviewUrl] = useState<string>('');
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [logoAssetName, setLogoAssetName] = useState('');
+  const [logoLibrary, setLogoLibrary] = useState<Array<{ name: string; url: string; path?: string }>>([]);
+  const [logoLibrarySearch, setLogoLibrarySearch] = useState('');
 
   // Tags input state
   const [tagInput, setTagInput] = useState('');
@@ -363,6 +366,16 @@ export default function AdminPage() {
       if (data.success) setSocialSettings(data.data);
     } catch {
       // Safe defaults
+    }
+  };
+
+  const loadLogoLibrary = async () => {
+    try {
+      const res = await fetch('/api/admin/logo-library');
+      const data = await res.json();
+      if (data.success) setLogoLibrary(Array.isArray(data.data) ? data.data : []);
+    } catch {
+      setLogoLibrary([]);
     }
   };
 
@@ -567,6 +580,7 @@ export default function AdminPage() {
           loadAdStats();
           loadSocialSettings();
           loadHomeStatsSettings();
+          loadLogoLibrary();
         }
       })
       .catch(() => setIsAuthenticated(false));
@@ -772,11 +786,14 @@ export default function AdminPage() {
         setUploadingLogo(true);
         const uploadData = new FormData();
         uploadData.append('file', logoFile);
+        uploadData.append('name', logoAssetName.trim());
         const uploadRes = await fetch('/api/admin/upload-logo', { method: 'POST', body: uploadData });
         const result = await uploadRes.json().catch(() => ({}));
         setUploadingLogo(false);
         if (!uploadRes.ok || !result.success) throw new Error(result.error || 'فشل رفع الشعار');
         companyLogo = result.url;
+        await loadLogoLibrary();
+        setLogoAssetName('');
       }
 
       const payload = {
@@ -2682,6 +2699,13 @@ export default function AdminPage() {
                 <div>
                   <label className="block font-bold text-ink-800 mb-1">شعار الجهة (رفع من الجهاز أو رابط)</label>
                   <div className="space-y-2">
+                    <input
+                      type="text"
+                      value={logoAssetName}
+                      onChange={(e) => setLogoAssetName(e.target.value)}
+                      placeholder="اسم الشعار للحفظ وإظهاره لاحقًا، مثال: أرامكو"
+                      className="w-full p-2 bg-paper-2/40 border border-line rounded-xl text-[11px]"
+                    />
                     <div className="flex items-center gap-2">
                       <label className="flex-1 flex items-center justify-between gap-2 px-3 py-2 border border-dashed border-saffron-300 bg-saffron-50/50 hover:bg-saffron-50 rounded-xl cursor-pointer text-[11px] font-bold text-saffron-900 transition">
                         <span className="truncate">
@@ -2741,6 +2765,60 @@ export default function AdminPage() {
                           {pl.name}
                         </button>
                       ))}
+                    </div>
+
+                    <div className="rounded-xl border border-line bg-white p-2 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] text-ink-500 font-bold shrink-0">مكتبة الشعارات:</span>
+                        <input
+                          type="search"
+                          value={logoLibrarySearch}
+                          onChange={(e) => setLogoLibrarySearch(e.target.value)}
+                          placeholder="ابحث بالاسم..."
+                          className="flex-1 min-w-0 p-1.5 border border-line rounded-lg text-[11px]"
+                        />
+                        <button
+                          type="button"
+                          onClick={loadLogoLibrary}
+                          className="px-2 py-1.5 rounded-lg bg-paper-2 border border-line text-[10px] font-bold"
+                        >
+                          تحديث
+                        </button>
+                      </div>
+
+                      {logoLibrary.length === 0 ? (
+                        <p className="text-[10px] text-ink-400 py-2 text-center">لا توجد شعارات مخزنة بعد.</p>
+                      ) : (
+                        <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 max-h-36 overflow-y-auto">
+                          {logoLibrary
+                            .filter((item) =>
+                              item.name.toLowerCase().includes(logoLibrarySearch.toLowerCase().trim())
+                            )
+                            .map((item) => (
+                              <button
+                                key={item.url}
+                                type="button"
+                                onClick={() => {
+                                  removeLogoFile();
+                                  setFormData((prev) => ({ ...prev, companyLogo: item.url }));
+                                }}
+                                className="group min-w-0 p-2 rounded-xl border border-line hover:border-saffron-400 hover:bg-saffron-50/40 transition"
+                                title={item.name}
+                              >
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img
+                                  src={item.url}
+                                  alt={item.name}
+                                  className="w-10 h-10 mx-auto object-contain"
+                                  loading="lazy"
+                                />
+                                <span className="block mt-1 truncate text-[9px] font-bold text-ink-700">
+                                  {item.name}
+                                </span>
+                              </button>
+                            ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
