@@ -7,6 +7,8 @@ import HeroSearch from '@/components/HeroSearch';
 import { daysLeft, matchesSector, sectorStyle, initialsOf } from '@/lib/ui';
 import type { JobSector } from '@/types/job';
 import { getHomeStatsSettings } from '@/lib/home-stats-settings';
+
+export const dynamic = 'force-dynamic';
 import {
   ShieldCheck,
   Flame,
