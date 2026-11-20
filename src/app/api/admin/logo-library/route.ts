@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { isAdminAuthenticated } from '@/lib/admin-auth';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import { getPublicImageUrl } from '@/lib/image-url';
 
 export const runtime = 'nodejs';
 const BUCKET = 'company-logos';
@@ -32,11 +33,11 @@ export async function GET() {
     .filter((file) => file.name && !file.name.endsWith('/'))
     .map((file) => {
       const path = `logos/${file.name}`;
-      const { data: urlData } = client.storage.from(BUCKET).getPublicUrl(path);
-      const existing = named.find((item) => item.url === urlData.publicUrl || item.path === path);
+      const publicUrl = getPublicImageUrl(path);
+      const existing = named.find((item) => item.url === publicUrl || item.url.includes(path) || item.path === path);
       return {
         name: existing?.name || file.name.replace(/\.[^.]+$/, ''),
-        url: urlData.publicUrl,
+        url: publicUrl,
         path,
       };
     });

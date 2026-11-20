@@ -4,9 +4,13 @@ const BUCKET = 'company-logos';
 const PUBLIC_PREFIX = `/storage/v1/object/public/${BUCKET}/`;
 
 function getStoragePath(url: string | null | undefined) {
-  if (!url || !url.includes(PUBLIC_PREFIX)) return null;
+  if (!url) return null;
   try {
     const pathname = new URL(url).pathname;
+    if (pathname.startsWith('/images/')) {
+      return decodeURIComponent(pathname.slice('/images/'.length));
+    }
+    if (!url.includes(PUBLIC_PREFIX)) return null;
     const marker = `${PUBLIC_PREFIX}`;
     const index = pathname.indexOf(marker);
     return index >= 0 ? decodeURIComponent(pathname.slice(index + marker.length)) : null;

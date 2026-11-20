@@ -3,6 +3,7 @@ import { isAdminAuthenticated } from '@/lib/admin-auth';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { recordAuditLog } from '@/lib/audit';
 import crypto from 'node:crypto';
+import { getPublicImageUrl } from '@/lib/image-url';
 
 export const runtime = 'nodejs';
 
@@ -73,7 +74,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: false, error: 'فشل رفع الشعار، حاول مرة أخرى' }, { status: 500 });
   }
 
-  const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
+  const publicUrl = getPublicImageUrl(path);
   const displayName = requestedName || file.name.replace(/\.[^.]+$/, '').trim() || 'شعار جهة';
   const libraryKey = 'company_logo_library';
   const { data: existingSetting } = await supabase
@@ -85,8 +86,8 @@ export async function POST(request: NextRequest) {
     ? existingSetting.value as Array<{ name: string; url: string; path: string }>
     : [];
   const nextLibrary = [
-    { name: displayName, url: data.publicUrl, path },
-    ...oldLibrary.filter((item) => item.url !== data.publicUrl),
+    { name: displayName, url: publicUrl, path },
+    ...oldLibrary.filter((item) => item.url !== publicUrl),
   ].slice(0, 500);
   await supabase.from('site_settings').upsert({
     key: libraryKey,
@@ -94,5 +95,5 @@ export async function POST(request: NextRequest) {
     updated_at: new Date().toISOString(),
   });
   await recordAuditLog('upload_logo', undefined, { path, fileType: detectedType, size: file.size });
-  return NextResponse.json({ success: true, url: data.publicUrl });
+  return NextResponse.json({ success: true, url: publicUrl });
 }
