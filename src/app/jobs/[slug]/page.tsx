@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { sectorStyle } from '@/lib/ui';
 import { sanitizeHtml } from '@/lib/sanitize';
+import { getSiteUrl } from '@/lib/site';
 
 interface JobPageProps {
   params: Promise<{ slug: string }>;
@@ -42,7 +43,7 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }: JobPageProps): Promise<Metadata> {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://wadhaef-alyoum.sa';
+  const baseUrl = getSiteUrl();
   const { slug } = await params;
   const job = await getJobBySlug(slug);
 

@@ -1,8 +1,11 @@
 import { MetadataRoute } from 'next';
 import { getAllJobs } from '@/data/store';
+import { getSiteUrl } from '@/lib/site';
+
+export const dynamic = 'force-dynamic';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://wadhaef-alyoum.sa';
+  const baseUrl = getSiteUrl();
   const jobs = await getAllJobs();
   const buildDate = new Date();
 

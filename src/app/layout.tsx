@@ -4,6 +4,7 @@ import Script from 'next/script';
 import './globals.css';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import { getSiteUrl } from '@/lib/site';
 
 const plex = IBM_Plex_Sans_Arabic({
   subsets: ['arabic', 'latin'],
@@ -18,8 +19,10 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
+const siteUrl = getSiteUrl();
+
 export const metadata: Metadata = {
-  metadataBase: new URL('https://wadhaef-alyoum.sa'),
+  metadataBase: new URL(siteUrl),
   title: {
     default: 'وظيفتك اليوم | أخبار الوظائف الحكومية والعسكرية والشركات بالمملكة',
     template: '%s | وظيفتك اليوم',
@@ -51,7 +54,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'ar_SA',
-    url: 'https://wadhaef-alyoum.sa',
+    url: siteUrl,
     siteName: 'وظيفتك اليوم',
     title: 'وظيفتك اليوم | أخبار الوظائف الحكومية والعسكرية ونتائج القبول',
     description: 'تابع جديد الوظائف المدنية والعسكرية والشركات وبرامج التدريب المنتهي بالتوظيف لحظة بلحظة.',
@@ -82,7 +85,7 @@ export const metadata: Metadata = {
     },
   },
   alternates: {
-    canonical: 'https://wadhaef-alyoum.sa',
+    canonical: siteUrl,
   },
 };
 

@@ -201,7 +201,7 @@ export const BUILTIN_BROADCAST_TEMPLATES: BroadcastTemplate[] = [
   },
 ];
 
-export function renderTemplate(templateStr: string, job: Job, siteUrl: string = 'https://wadhaef-alyoum.sa'): string {
+export function renderTemplate(templateStr: string, job: Job, siteUrl: string = 'https://www.job2sa.com'): string {
   const jobUrl = `${siteUrl}/jobs/${job.slug}`;
   const quals = job.qualifications.join('، ');
   const tagsStr = (job.tags || []).map((t) => `#${t.replace(/\s+/g, '_')}`).join(' ');
@@ -230,7 +230,7 @@ export function renderTemplate(templateStr: string, job: Job, siteUrl: string = 
  */
 export function formatTelegramMessage(
   job: Job,
-  siteUrl: string = 'https://wadhaef-alyoum.sa',
+  siteUrl: string = 'https://www.job2sa.com',
   templateStr?: string
 ): string {
   if (templateStr) {
@@ -244,7 +244,7 @@ export function formatTelegramMessage(
  */
 export function formatWhatsAppMessage(
   job: Job,
-  siteUrl: string = 'https://wadhaef-alyoum.sa',
+  siteUrl: string = 'https://www.job2sa.com',
   templateStr?: string
 ): string {
   if (templateStr) {
@@ -260,7 +260,7 @@ export async function sendTelegramBroadcast(
   job: Job,
   botToken: string,
   channelId: string,
-  siteUrl: string = 'https://wadhaef-alyoum.sa',
+  siteUrl: string = 'https://www.job2sa.com',
   customText?: string
 ): Promise<{ success: boolean; message: string; data?: any }> {
   if (!botToken || !channelId) {

@@ -3,6 +3,7 @@ import { getJobById } from '@/data/store';
 import { sendTelegramBroadcast } from '@/lib/broadcast';
 import { isAdminAuthenticated } from '@/lib/admin-auth';
 import { recordAuditLog } from '@/lib/audit';
+import { getSiteUrl } from '@/lib/site';
 
 export async function POST(request: NextRequest) {
   try {
@@ -41,7 +42,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const effectiveSiteUrl = siteUrl || process.env.NEXT_PUBLIC_SITE_URL || 'https://wadhaef-alyoum.sa';
+    const effectiveSiteUrl = siteUrl || getSiteUrl();
 
     const result = await sendTelegramBroadcast(job, activeToken, activeChannel, effectiveSiteUrl, customText);
 
