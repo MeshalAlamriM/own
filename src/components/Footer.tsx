@@ -137,9 +137,11 @@ export default function Footer() {
         <div className="grid grid-cols-2 lg:grid-cols-12 gap-x-6 gap-y-10 pb-12 -mt-8">
           <div className="col-span-2 lg:col-span-4 space-y-5">
             <div className="flex items-center gap-3">
-              <span className="relative inline-flex items-center justify-center w-11 h-11 rounded-[14px] bg-saffron-400 text-ink-950 font-bold text-[22px] leading-none">
-                <span className="-mt-0.5">و</span>
-              </span>
+              <img
+                src="/logo-mark.png"
+                alt="شعار وظيفتك اليوم"
+                className="w-11 h-11 object-contain"
+              />
               <span className="text-[19px] font-bold text-white">
                 وظيفتك <span className="text-saffron-400">اليوم</span>
               </span>
