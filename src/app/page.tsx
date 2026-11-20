@@ -96,10 +96,10 @@ export default async function HomePage() {
   const resultsJobs = jobs.filter((j) => matchesSector(j, 'results')).slice(0, 4);
 
   const numbers = [
-    { key: 'total', value: stats.total, label: 'إعلان في المنصة' },
-    { key: 'active', value: stats.active, label: 'مفتوح للتقديم الآن' },
-    { key: 'expiringSoon', value: stats.expiringSoon, label: 'ينتهي خلال أسبوع' },
-    { key: 'totalViews', value: stats.totalViews, label: 'مشاهدة للإعلانات' },
+    { key: 'total', value: stats.total, label: 'إعلان في المنصة', href: '/jobs' },
+    { key: 'active', value: stats.active, label: 'مفتوح للتقديم الآن', href: '/jobs?status=active' },
+    { key: 'expiringSoon', value: stats.expiringSoon, label: 'ينتهي خلال أسبوع', href: '/jobs?expiring=week' },
+    { key: 'totalViews', value: stats.totalViews, label: 'مشاهدة للإعلانات', href: '/jobs?sort=popular' },
   ].filter((item) => homeStatsSettings[item.key as keyof typeof homeStatsSettings]);
 
   const visibleNumbersCount = numbers.length;
@@ -222,21 +222,23 @@ export default async function HomePage() {
             } rounded-3xl bg-ink-950 text-white overflow-hidden shadow-lift grain`}
           >
             {numbers.map((n, i) => (
-              <div
+              <Link
                 key={n.label}
+                href={n.href}
+                aria-label={n.label}
                 className={`px-6 py-6 sm:py-7 ${
                   i % 2 === 1 ? 'border-s border-white/10' : ''
                 } ${
                   i >= 2 ? 'border-t border-white/10 lg:border-t-0' : ''
                 } ${
                   i > 0 ? 'lg:border-s lg:border-white/10' : ''
-                }`}
+                } transition-colors hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-saffron-300`}
               >
                 <dd className="text-[30px] sm:text-[38px] font-bold leading-none tabular-nums text-saffron-300">
                   {n.value.toLocaleString('en-US')}
                 </dd>
                 <dt className="mt-2.5 text-[13px] text-ink-300">{n.label}</dt>
-              </div>
+              </Link>
             ))}
           </dl>
         </div>

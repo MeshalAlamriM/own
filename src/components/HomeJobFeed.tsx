@@ -16,6 +16,8 @@ interface HomeJobFeedProps {
   defaultCity?: string;
   defaultStatus?: JobStatus | 'all';
   defaultQuery?: string;
+  defaultExpiringWeek?: boolean;
+  defaultSort?: SortKey;
 }
 
 type SortKey = 'latest' | 'popular' | 'closing';
@@ -32,6 +34,8 @@ export default function HomeJobFeed({
   defaultCity = 'all',
   defaultStatus = 'all',
   defaultQuery = '',
+  defaultExpiringWeek = false,
+  defaultSort = 'latest',
 }: HomeJobFeedProps) {
   const [selectedSector, setSelectedSector] = useState<JobSector | 'all'>(defaultSector);
   const [selectedQualification, setSelectedQualification] = useState<string>(defaultQualification);
@@ -39,7 +43,8 @@ export default function HomeJobFeed({
   const [selectedCity, setSelectedCity] = useState<string>(defaultCity);
   const [selectedStatus, setSelectedStatus] = useState<JobStatus | 'all'>(defaultStatus);
   const [searchQuery, setSearchQuery] = useState<string>(defaultQuery);
-  const [sort, setSort] = useState<SortKey>('latest');
+  const [sort, setSort] = useState<SortKey>(defaultSort);
+  const [expiringWeek, setExpiringWeek] = useState(defaultExpiringWeek);
   const [visible, setVisible] = useState(PAGE_SIZE);
 
   const handleReset = () => {
@@ -49,6 +54,8 @@ export default function HomeJobFeed({
     setSelectedCity('all');
     setSelectedStatus('all');
     setSearchQuery('');
+    setExpiringWeek(false);
+    setSort('latest');
     setVisible(PAGE_SIZE);
   };
 
@@ -99,6 +106,13 @@ export default function HomeJobFeed({
 
       if (selectedStatus !== 'all' && job.status !== selectedStatus) return false;
 
+      if (expiringWeek) {
+        const end = new Date(`${job.endDate}T23:59:59`).getTime();
+        const now = Date.now();
+        const days = Math.ceil((end - now) / (24 * 60 * 60 * 1000));
+        if (days < 0 || days > 7) return false;
+      }
+
       return true;
     });
 
@@ -125,6 +139,7 @@ export default function HomeJobFeed({
     selectedStatus,
     searchQuery,
     sort,
+    expiringWeek,
   ]);
 
   const isDefaultView =
@@ -133,6 +148,7 @@ export default function HomeJobFeed({
     selectedGender === 'all' &&
     selectedCity === 'all' &&
     selectedStatus === 'all' &&
+    !expiringWeek &&
     !searchQuery.trim();
 
   const featuredJobs = useMemo(() => initialJobs.filter((j) => j.featured).slice(0, 3), [initialJobs]);

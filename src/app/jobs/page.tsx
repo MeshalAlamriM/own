@@ -19,6 +19,8 @@ interface JobsPageProps {
     gender?: GenderType;
     city?: string;
     status?: JobStatus;
+    expiring?: 'week';
+    sort?: 'latest' | 'popular';
     q?: string;
   }>;
 }
@@ -38,6 +40,10 @@ async function JobsFeedContainer({ searchParams }: JobsPageProps) {
 
   const title = params.q
     ? `نتائج البحث عن «${params.q}»`
+    : params.expiring === 'week'
+      ? 'الوظائف التي تنتهي خلال أسبوع'
+      : params.status === 'active'
+        ? 'الوظائف المتاحة للتقديم الآن'
     : (params.sector && titles[params.sector]) || 'دليل كل الوظائف الشاغرة بالمملكة';
 
   return (
@@ -60,6 +66,8 @@ async function JobsFeedContainer({ searchParams }: JobsPageProps) {
           defaultCity={params.city || 'all'}
           defaultStatus={params.status || 'all'}
           defaultQuery={params.q || ''}
+          defaultExpiringWeek={params.expiring === 'week'}
+          defaultSort={params.sort === 'popular' ? 'popular' : 'latest'}
         />
       </div>
     </>
