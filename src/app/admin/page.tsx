@@ -2696,7 +2696,7 @@ export default function AdminPage() {
                   مزامنة قاعدة البيانات السحابية (Supabase)
                 </h3>
                 <p className="text-xs text-ink-500 leading-relaxed">
-                  تتيح لك إعادة ملء ومزامنة جميع الوظائف التأسيسية الـ 12 المعتمدة في كافة القطاعات (حكومية، عسكرية، شركات، تدريب، نتائج).
+                  تتيح لك مزامنة عشر وظائف موثقة من جهات رسمية مع شعارات الجهات وروابط التقديم الرسمية.
                 </p>
               </div>
 
@@ -2705,7 +2705,7 @@ export default function AdminPage() {
                 disabled={seeding}
                 className="px-5 py-2.5 rounded-xl bg-saffron-500 hover:bg-saffron-600 text-ink-950 font-black text-xs shadow-soft transition disabled:opacity-50 shrink-0"
               >
-                {seeding ? 'جاري المزامنة...' : 'مزامنة الوظائف التأسيسية الآن'}
+                {seeding ? 'جاري المزامنة...' : 'مزامنة 10 وظائف حقيقية الآن'}
               </button>
             </div>
 

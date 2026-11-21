@@ -19,7 +19,7 @@ function jobToRow(job: Job) {
     qualifications: job.qualifications,
     location: job.location,
     city: job.city,
-    status: job.status,
+    status: job.id === 'adeel-remote-customer-care-2026' ? 'expired' : job.status,
     start_date: job.startDate,
     end_date: job.endDate,
     publish_date: job.publishDate,
@@ -52,7 +52,21 @@ export async function GET() {
   }
 
   try {
-    const rows = INITIAL_JOBS.map(jobToRow);
+    const realJobIds = new Set([
+      'aramco-apprentice-2026',
+      'guard-recruitment-2026',
+      'neom-corporate-jobs-2026',
+      'moh-self-operation-2026',
+      'sabic-graduate-development-2026',
+      'zatca-customs-officers-2026',
+      'stc-tech-cloud-security-2026',
+      'pif-graduate-fellowship-2026',
+      'red-sea-global-hospitality-2026',
+      'adeel-remote-customer-care-2026',
+    ]);
+    const rows = INITIAL_JOBS
+      .filter((job) => realJobIds.has(job.id))
+      .map(jobToRow);
     const { error } = await supabase
       .from('jobs')
       .upsert(rows, { onConflict: 'id', ignoreDuplicates: true });
@@ -73,7 +87,7 @@ export async function GET() {
 
     return NextResponse.json({
       success: true,
-      message: 'تمت مزامنة وحفظ كافة الوظائف الافتراضية في قاعدة البيانات السحابية بنجاح!',
+      message: `تمت مزامنة ${rows.length} وظائف حقيقية في قاعدة البيانات السحابية بنجاح!`,
       seededCount: rows.length,
       totalJobsInCloud: count
     });
