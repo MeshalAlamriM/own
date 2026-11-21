@@ -102,13 +102,17 @@ export default function RootLayout({
         {googleTagId && (
           <>
             {isGoogleTagManager ? (
-              <Script id="google-tag-manager" strategy="afterInteractive">
-                {`(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-                new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-                j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-                'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-                })(window,document,'script','dataLayer','${googleTagId.replace(/[^A-Za-z0-9-]/g, '')}');`}
-              </Script>
+              <>
+                <Script
+                  async
+                  src={`https://www.googletagmanager.com/gtm.js?id=${encodeURIComponent(googleTagId)}`}
+                  strategy="afterInteractive"
+                />
+                <Script id="google-tag-manager" strategy="afterInteractive">
+                  {`window.dataLayer = window.dataLayer || [];
+                  window.dataLayer.push({'gtm.start': new Date().getTime(), 'event': 'gtm.js'});`}
+                </Script>
+              </>
             ) : (
               <>
                 <Script
