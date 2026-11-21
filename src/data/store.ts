@@ -135,6 +135,21 @@ function rowToJob(row: DbJobRow): Job {
   };
 }
 
+function isPublishableJob(job: Job): boolean {
+  if (!job.title.trim() || job.title.trim().length < 4) return false;
+  if (!job.company.trim() || job.company.trim().length < 3) return false;
+
+  try {
+    const applicationUrl = new URL(job.applicationUrl);
+    if (!['http:', 'https:'].includes(applicationUrl.protocol)) return false;
+    if (!applicationUrl.hostname.includes('.')) return false;
+  } catch {
+    return false;
+  }
+
+  return true;
+}
+
 // Convert TypeScript Job model to Supabase DB row
 function jobToRow(job: Job) {
   return {
@@ -188,7 +203,7 @@ export async function getAllJobs(filters?: JobFilterParams): Promise<Job[]> {
       const { data, error } = await query.order('publish_date', { ascending: false });
 
       if (!error && data) {
-        let results = data.map(rowToJob);
+        let results = data.map(rowToJob).filter(isPublishableJob);
 
         if (filters?.query) {
           const q = filters.query.toLowerCase().trim();
@@ -277,7 +292,10 @@ export async function getJobBySlug(slug: string): Promise<Job | undefined> {
         .eq('slug', decodedSlug)
         .maybeSingle();
 
-      if (!bySlug.error && bySlug.data) return rowToJob(bySlug.data);
+      if (!bySlug.error && bySlug.data) {
+        const job = rowToJob(bySlug.data);
+        return isPublishableJob(job) ? job : undefined;
+      }
       if (bySlug.error) throw bySlug.error;
 
       const byId = await supabase
@@ -286,7 +304,10 @@ export async function getJobBySlug(slug: string): Promise<Job | undefined> {
         .eq('id', decodedSlug)
         .maybeSingle();
 
-      if (!byId.error) return byId.data ? rowToJob(byId.data) : undefined;
+      if (!byId.error) {
+        const job = byId.data ? rowToJob(byId.data) : undefined;
+        return job && isPublishableJob(job) ? job : undefined;
+      }
       throw byId.error;
     } catch (e) {
       console.error('Supabase getJobBySlug error:', e);

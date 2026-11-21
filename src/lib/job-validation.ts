@@ -10,10 +10,12 @@ export function validateJobInput(value: unknown, partial = false): string | null
 
   if (!partial || 'title' in body) {
     if (typeof body.title !== 'string' || !body.title.trim()) return 'عنوان الإعلان مطلوب';
+    if (body.title.trim().length < 4) return 'عنوان الإعلان قصير جدًا';
     if (body.title.trim().length > 200) return 'عنوان الإعلان طويل جدًا';
   }
   if (!partial || 'company' in body) {
     if (typeof body.company !== 'string' || !body.company.trim()) return 'اسم الجهة مطلوب';
+    if (body.company.trim().length < 3) return 'اسم الجهة قصير جدًا';
     if (body.company.trim().length > 200) return 'اسم الجهة طويل جدًا';
   }
   if ('sector' in body && !sectors.includes(body.sector as JobSector)) return 'القطاع المحدد غير صالح';
@@ -25,6 +27,7 @@ export function validateJobInput(value: unknown, partial = false): string | null
       try {
         const url = new URL(body[field] as string);
         if (!['http:', 'https:'].includes(url.protocol)) return `رابط ${field} غير صالح`;
+        if (field !== 'companyLogo' && !url.hostname.includes('.')) return `رابط ${field} غير صالح`;
       } catch {
         return `رابط ${field} غير صالح`;
       }
