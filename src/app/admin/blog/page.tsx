@@ -32,6 +32,7 @@ export default function AdminBlogPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [editingPost, setEditingPost] = useState<BlogPost | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [query, setQuery] = useState('');
@@ -141,6 +142,30 @@ export default function AdminBlogPage() {
       setError(cause instanceof Error ? cause.message : 'تعذر حفظ المقال');
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function uploadCoverImage(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setUploadingImage(true);
+    setError('');
+    try {
+      const uploadData = new FormData();
+      uploadData.set('file', file);
+      const response = await fetch('/api/admin/blog/upload-image', {
+        method: 'POST',
+        body: uploadData,
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) throw new Error(data.error || 'تعذر رفع الصورة');
+      setForm((current) => ({ ...current, coverImage: data.url }));
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'تعذر رفع الصورة');
+    } finally {
+      setUploadingImage(false);
+      event.target.value = '';
     }
   }
 
@@ -302,9 +327,24 @@ export default function AdminBlogPage() {
             <Field label="ملخص المقال" required hint={`${form.excerpt.length}/320`}>
               <textarea required minLength={10} maxLength={320} rows={3} value={form.excerpt} onChange={(event) => setForm({ ...form, excerpt: event.target.value })} className={inputClass} placeholder="اكتب وصفاً موجزاً يظهر في نتائج البحث وبطاقة المقال." />
             </Field>
-            <Field label="صورة الغلاف" hint="رابط HTTPS أو مسار صورة محلية، ويمكن تركه فارغاً">
-              <input dir="ltr" type="text" value={form.coverImage} onChange={(event) => setForm({ ...form, coverImage: event.target.value })} className={`${inputClass} text-left`} placeholder="https://example.com/image.jpg" />
+            <Field label="صورة الغلاف" hint="ارفع صورة أو أدخل رابط HTTPS">
+              <div className="space-y-3">
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={uploadCoverImage}
+                  disabled={uploadingImage}
+                  className={`${inputClass} file:ml-3 file:rounded-lg file:border-0 file:bg-saffron-100 file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-ink-900`}
+                />
+                <p className="text-xs leading-5 text-ink-400">JPG أو PNG أو WEBP، بحد أقصى 5MB. يتم الرفع الآمن إلى خادم الصور.</p>
+                <input dir="ltr" type="text" value={form.coverImage} onChange={(event) => setForm({ ...form, coverImage: event.target.value })} className={`${inputClass} text-left`} placeholder="https://example.com/image.jpg" />
+              </div>
             </Field>
+            {uploadingImage && (
+              <p role="status" className="flex items-center gap-2 text-sm font-semibold text-ink-600">
+                <LoaderCircle className="h-4 w-4 animate-spin" /> جارٍ رفع الصورة إلى الخادم...
+              </p>
+            )}
             {isSafeBlogImageUrl(form.coverImage) && (
               <div className="relative h-36 overflow-hidden rounded-xl bg-paper-2">
                 <Image src={form.coverImage} alt="معاينة صورة الغلاف" fill unoptimized sizes="500px" className="object-cover" />
