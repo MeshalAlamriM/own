@@ -12,6 +12,7 @@
 - `TELEGRAM_BOT_TOKEN` — اختياري للنشر في Telegram.
 - `TELEGRAM_CHANNEL_ID` — اختياري للنشر في Telegram.
 - `NEXT_PUBLIC_SITE_URL` — رابط الموقع النهائي.
+- `NEXT_PUBLIC_IMAGES_URL=https://images.job2sa.com` — نطاق ملفات الشعارات المرفوعة.
 - `RESEND_API_KEY` — اختياري لإرسال رسائل اتصل بنا عبر Resend.
 - `CONTACT_FROM_EMAIL` و`CONTACT_TO_EMAIL` — عنوان المرسل وصندوق الاستلام.
 

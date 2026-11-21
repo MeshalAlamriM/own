@@ -10,9 +10,11 @@ export function getPublicImageUrl(storagePath: string): string {
     }
   }
 
+  const primaryImagesDomain = 'https://images.job2sa.com';
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/+$/, '');
   if (supabaseUrl) {
-    return `${supabaseUrl}/storage/v1/object/public/company-logos/${encodeURI(cleanPath)}`;
+    return `${primaryImagesDomain}/images/${encodeURI(cleanPath)}`;
   }
+
   return `/images/${encodeURI(cleanPath)}`;
 }
