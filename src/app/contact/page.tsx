@@ -42,7 +42,12 @@ export default function ContactPage() {
                 </div>
                 <div>
                   <span className="block font-bold text-ink-800">البريد الإلكتروني للتحرير:</span>
-                  <span className="text-ink-500 dir-ltr text-right block">contact@wadhaef-alyoum.sa</span>
+                  <a
+                    href="mailto:info@job2sa.com"
+                    className="text-ink-500 dir-ltr text-right block hover:text-saffron-700 hover:underline"
+                  >
+                    info@job2sa.com
+                  </a>
                 </div>
               </div>
 
