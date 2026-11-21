@@ -8,6 +8,7 @@ import { daysLeft, matchesSector, sectorStyle } from '@/lib/ui';
 import type { JobSector } from '@/types/job';
 import { getHomeStatsSettings } from '@/lib/home-stats-settings';
 import CompanyLogo from '@/components/CompanyLogo';
+import JobCard from '@/components/JobCard';
 
 export const dynamic = 'force-dynamic';
 import {
@@ -301,37 +302,10 @@ export default async function HomePage() {
               </div>
             </div>
 
-            <div className="-mx-4 px-4 sm:mx-0 sm:px-0 flex gap-4 overflow-x-auto scrollbar-none snap-x snap-mandatory pb-2">
-              {closingSoon.map(({ job, left }) => {
-                const s = sectorStyle[job.sector];
-                return (
-                  <Link
-                    key={job.id}
-                    href={`/jobs/${job.slug}`}
-                    className="snap-start shrink-0 w-[270px] sm:w-[300px] group rounded-2xl bg-white border border-line hover:border-ink-300 hover:shadow-lift transition-all p-5 flex flex-col"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className={`inline-flex items-center gap-1.5 h-6 px-2.5 rounded-full text-[12px] font-semibold ring-1 ${s.chip}`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`} />
-                        {job.sectorLabel}
-                      </span>
-                      <span className={`text-[12px] font-bold ${left <= 1 ? 'text-rose-600' : 'text-ink-600'}`}>
-                        {left === 0 ? 'آخر يوم' : left === 1 ? 'يوم واحد' : `${left} أيام`}
-                      </span>
-                    </div>
-                    <h3 className="mt-4 text-[16px] font-bold leading-[1.65] text-ink-950 line-clamp-2 group-hover:text-saffron-700 transition-colors">
-                      {job.title}
-                    </h3>
-                    <p className="mt-2 text-[13px] text-ink-500 truncate">{job.company}</p>
-                    <div className="mt-5 h-1.5 rounded-full bg-ink-100 overflow-hidden">
-                      <div
-                        className={`h-full rounded-full ${left <= 1 ? 'bg-rose-500' : 'bg-saffron-500'}`}
-                        style={{ width: `${Math.max(8, 100 - left * 13)}%` }}
-                      />
-                    </div>
-                  </Link>
-                );
-              })}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {closingSoon.map(({ job }) => (
+                <JobCard key={job.id} job={job} />
+              ))}
             </div>
           </section>
         )}
