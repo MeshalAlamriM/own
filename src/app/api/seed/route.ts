@@ -63,6 +63,11 @@ export async function GET() {
       'pif-graduate-fellowship-2026',
       'red-sea-global-hospitality-2026',
       'adeel-remote-customer-care-2026',
+      'stc-infrastructure-budgeting-manager-2026',
+      'stc-external-funding-manager-2026',
+      'stc-senior-wbu-national-services-analyst-2026',
+      'stc-project-management-assistant-manager-2026',
+      'stc-digital-transformation-expert-2026',
     ]);
     const rows = INITIAL_JOBS
       .filter((job) => realJobIds.has(job.id))
