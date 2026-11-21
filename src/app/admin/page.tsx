@@ -1176,6 +1176,13 @@ export default function AdminPage() {
               <PlusCircle className="w-4 h-4" />
               <span>إضافة إعلان جديد</span>
             </button>
+            <Link
+              href="/admin/blog"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white hover:bg-paper-2 border border-line text-ink-800 rounded-xl text-xs font-bold transition"
+            >
+              <FileText className="w-3.5 h-3.5 text-saffron-600" />
+              <span>إدارة المدونة</span>
+            </Link>
           </div>
         </div>
 

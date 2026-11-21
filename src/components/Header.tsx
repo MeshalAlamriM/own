@@ -19,6 +19,7 @@ import {
   Laptop,
   Home,
   CornerDownLeft,
+  Newspaper,
 } from 'lucide-react';
 import { DEFAULT_SOCIAL_SETTINGS, SocialSettings } from '@/lib/social-settings';
 
@@ -30,6 +31,7 @@ const navLinks = [
   { href: '/training', label: 'تدريب', icon: GraduationCap, sector: 'training' },
   { href: '/results', label: 'نتائج القبول', icon: CheckCircle2, sector: 'results' },
   { href: '/jobs?sector=remote', label: 'عن بُعد', icon: Laptop, sector: 'remote' },
+  { href: '/blog', label: 'المدونة', icon: Newspaper, sector: null },
 ];
 
 function SearchParamsSync({ onSectorChange }: { onSectorChange: (s: string | null) => void }) {
@@ -168,6 +170,10 @@ export default function Header() {
 
     if (href === '/results') {
       return pathname === '/results' || (pathname === '/jobs' && currentSector === 'results');
+    }
+
+    if (href === '/blog') {
+      return pathname.startsWith('/blog');
     }
 
     if (sector) {

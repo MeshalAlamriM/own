@@ -71,6 +71,7 @@ npm run build
 - كلمة المرور تحددها أنت في متغير `ADMIN_PASSWORD` داخل Vercel.
 - أضف أيضًا `ADMIN_SESSION_SECRET` بقيمة عشوائية مختلفة لتوقيع جلسة HttpOnly.
 - عمليات الإضافة والتعديل والحذف والنشر محمية من الخادم، وليست معتمدة على `localStorage`.
+- إدارة مقالات المدونة: `http://localhost:3000/admin/blog`، بعد تسجيل الدخول أو باستخدام كلمة مرور الإدارة نفسها.
 
 ## 🔐 متغيرات الإنتاج المطلوبة
 
@@ -86,4 +87,4 @@ npm run build
 - `CONTACT_TO_EMAIL` — صندوق الاستلام، الافتراضي `info@job2sa.com`.
 - `NEXT_PUBLIC_GOOGLE_TAG_ID=GTM-WDGX4FJR` — معرف Google Tag/Google Analytics.
 
-بعد تحديث `supabase-schema.sql`، نفّذ الملف في Supabase SQL Editor لتفعيل القراءة العامة فقط، وإغلاق الكتابة العامة، وإضافة الفهارس ودالة عداد المشاهدات الذرية.
+بعد تحديث `supabase-schema.sql`، نفّذ الملف في Supabase SQL Editor لتفعيل القراءة العامة فقط، وإغلاق الكتابة العامة، وإضافة الفهارس ودالة عداد المشاهدات الذرية وجدول مقالات المدونة. يتطلب حفظ المقالات تعيين `SUPABASE_SERVICE_ROLE_KEY` على الخادم.

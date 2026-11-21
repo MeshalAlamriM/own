@@ -62,6 +62,7 @@ const sectionLinks = [
   { href: '/training', label: 'التدريب المنتهي بالتوظيف' },
   { href: '/results', label: 'نتائج القبول والترشيح' },
   { href: '/jobs?sector=remote', label: 'العمل عن بُعد' },
+  { href: '/blog', label: 'المدونة المهنية' },
 ];
 
 const qualificationLinks = [

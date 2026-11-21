@@ -1,12 +1,14 @@
 import { MetadataRoute } from 'next';
 import { getAllJobs } from '@/data/store';
 import { getSiteUrl } from '@/lib/site';
+import { getPublishedBlogPosts } from '@/lib/blog';
 
 export const dynamic = 'force-dynamic';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = getSiteUrl();
   const jobs = await getAllJobs();
+  const blogPosts = await getPublishedBlogPosts();
   const buildDate = new Date();
 
   // Static routes
@@ -34,6 +36,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: buildDate,
       changeFrequency: 'daily',
       priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/blog`,
+      lastModified: buildDate,
+      changeFrequency: 'daily',
+      priority: 0.75,
     },
     {
       url: `${baseUrl}/jobs?sector=government`,
@@ -93,5 +101,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: job.featured ? 0.95 : 0.8,
   }));
 
-  return [...staticRoutes, ...jobRoutes];
+  const blogRoutes: MetadataRoute.Sitemap = blogPosts.map((post) => ({
+    url: `${baseUrl}/blog/${post.slug}`,
+    lastModified: post.updatedAt ? new Date(post.updatedAt) : buildDate,
+    changeFrequency: 'monthly',
+    priority: post.featured ? 0.8 : 0.65,
+  }));
+
+  return [...staticRoutes, ...jobRoutes, ...blogRoutes];
 }

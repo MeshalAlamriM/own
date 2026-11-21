@@ -123,6 +123,37 @@ CREATE TABLE IF NOT EXISTS public.contact_messages (
 );
 
 ALTER TABLE public.contact_messages ENABLE ROW LEVEL SECURITY;
+-- Blog articles. Public users can read published posts only; all writes use
+-- the authenticated admin API and the server-side service_role key.
+CREATE TABLE IF NOT EXISTS public.blog_posts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  slug TEXT UNIQUE NOT NULL,
+  title TEXT NOT NULL,
+  category TEXT NOT NULL,
+  excerpt TEXT NOT NULL,
+  content TEXT NOT NULL,
+  cover_image TEXT,
+  status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'published')),
+  featured BOOLEAN NOT NULL DEFAULT FALSE,
+  views_count INTEGER NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  published_at TIMESTAMPTZ
+);
+
+ALTER TABLE public.blog_posts ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Published blog posts are public" ON public.blog_posts;
+CREATE POLICY "Published blog posts are public"
+  ON public.blog_posts FOR SELECT
+  TO anon, authenticated
+  USING (status = 'published');
+
+CREATE INDEX IF NOT EXISTS blog_posts_published_at_idx
+  ON public.blog_posts (published_at DESC)
+  WHERE status = 'published';
+CREATE INDEX IF NOT EXISTS blog_posts_featured_idx
+  ON public.blog_posts (featured, published_at DESC)
+  WHERE status = 'published';
 CREATE INDEX IF NOT EXISTS contact_messages_created_at_idx ON public.contact_messages (created_at DESC);
 CREATE INDEX IF NOT EXISTS contact_messages_status_idx ON public.contact_messages (status);
 CREATE INDEX IF NOT EXISTS contact_messages_category_idx ON public.contact_messages (category);
