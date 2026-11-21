@@ -53,7 +53,7 @@ export async function GET() {
 
   try {
     const rows = INITIAL_JOBS.map(jobToRow);
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('jobs')
       .upsert(rows, { onConflict: 'id', ignoreDuplicates: true });
 
@@ -77,10 +77,10 @@ export async function GET() {
       seededCount: rows.length,
       totalJobsInCloud: count
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     return NextResponse.json({
       success: false,
-      error: err?.message || String(err)
+      error: err instanceof Error ? err.message : String(err)
     }, { status: 500 });
   }
 }

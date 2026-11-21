@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { Job } from '@/types/job';
+import Image from 'next/image';
 import { MapPin, GraduationCap, Users, ArrowUpLeft, Building2, Flame, Sparkles } from 'lucide-react';
 import BookmarkButton from './BookmarkButton';
 import ShareButtons from './ShareButtons';
@@ -44,8 +45,13 @@ export default function JobCard({ job, featuredHighlight = false }: JobCardProps
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-12 h-12 rounded-xl bg-paper border border-line flex items-center justify-center shrink-0 overflow-hidden p-1.5">
               {job.companyLogo ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={job.companyLogo} alt={job.company} className="w-full h-full object-contain" loading="lazy" />
+                <Image
+                  src={job.companyLogo}
+                  alt={job.company}
+                  fill
+                  sizes="48px"
+                  className="object-contain"
+                />
               ) : (
                 <Building2 className="w-5 h-5 text-ink-300" />
               )}

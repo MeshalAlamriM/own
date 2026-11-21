@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import PageHeader from '@/components/PageHeader';
-import { ShieldCheck, Lock, Eye, FileText, CheckCircle } from 'lucide-react';
+import { ShieldCheck } from 'lucide-react';
 
 export const metadata: Metadata = {
   title: 'سياسة الخصوصية وملفات تعريف الارتباط | وظيفتك اليوم',

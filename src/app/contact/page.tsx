@@ -2,20 +2,43 @@
 
 import { useState } from 'react';
 import PageHeader from '@/components/PageHeader';
-import { Mail, MessageSquare, Send, CheckCircle2, Phone, MapPin } from 'lucide-react';
+import { Mail, MessageSquare, Send, CheckCircle2, MapPin, AlertCircle } from 'lucide-react';
 
 export default function ContactPage() {
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+  const [category, setCategory] = useState<'inquiry' | 'report'>('inquiry');
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     subject: '',
     message: '',
+    jobUrl: '',
+    website: '',
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitted(true);
+    setSubmitting(true);
+    setSubmitError('');
+    try {
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...formData, category }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'تعذر إرسال الرسالة.');
+      }
+      setSubmitted(true);
+      setFormData({ name: '', email: '', subject: '', message: '', jobUrl: '', website: '' });
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : 'تعذر إرسال الرسالة.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -111,6 +134,49 @@ export default function ContactPage() {
               <form onSubmit={handleSubmit} className="space-y-4 text-[13.5px]">
                 <h3 className="font-bold text-ink-900 text-base mb-2">أرسل لنا استفسارك مباشرة</h3>
 
+                <input
+                  type="text"
+                  name="website"
+                  tabIndex={-1}
+                  autoComplete="off"
+                  aria-hidden="true"
+                  value={formData.website}
+                  onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+                  className="hidden"
+                />
+
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setCategory('inquiry')}
+                    className={`p-3 rounded-xl border text-xs font-bold transition ${category === 'inquiry' ? 'border-saffron-500 bg-saffron-50 text-saffron-800' : 'border-line text-ink-600'}`}
+                  >
+                    <Mail className="w-4 h-4 inline-block ms-1" />
+                    استفسار أو اقتراح
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCategory('report')}
+                    className={`p-3 rounded-xl border text-xs font-bold transition ${category === 'report' ? 'border-rose-500 bg-rose-50 text-rose-700' : 'border-line text-ink-600'}`}
+                  >
+                    <AlertCircle className="w-4 h-4 inline-block ms-1" />
+                    إبلاغ عن إعلان
+                  </button>
+                </div>
+
+                {category === 'report' && (
+                  <div>
+                    <label className="block font-bold text-ink-700 mb-1">رابط الإعلان محل البلاغ</label>
+                    <input
+                      type="url"
+                      value={formData.jobUrl}
+                      onChange={(e) => setFormData({ ...formData, jobUrl: e.target.value })}
+                      placeholder="https://job2sa.com/jobs/..."
+                      className="w-full p-3 bg-paper border border-line rounded-xl outline-none focus:ring-4 focus:ring-saffron-100 focus:border-saffron-500 focus:bg-white dir-ltr text-right"
+                    />
+                  </div>
+                )}
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block font-bold text-ink-700 mb-1">الاسم الكامل *</label>
@@ -161,11 +227,18 @@ export default function ContactPage() {
                   />
                 </div>
 
+                {submitError && (
+                  <p role="alert" className="rounded-xl bg-rose-50 border border-rose-200 text-rose-700 px-3 py-2 text-xs">
+                    {submitError}
+                  </p>
+                )}
+
                 <button
                   type="submit"
-                  className="w-full py-3 bg-ink-950 hover:bg-ink-800 text-white font-bold text-xs rounded-xl  transition"
+                  disabled={submitting}
+                  className="w-full py-3 bg-ink-950 hover:bg-ink-800 disabled:opacity-60 text-white font-bold text-xs rounded-xl transition"
                 >
-                  إرسال الرسالة الآن
+                  {submitting ? 'جاري الإرسال...' : 'إرسال الرسالة الآن'}
                 </button>
               </form>
             )}

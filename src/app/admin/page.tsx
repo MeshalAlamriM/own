@@ -4,8 +4,6 @@ import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { Job, JobSector, GenderType, JobStatus } from '@/types/job';
 import {
-  formatTelegramMessage,
-  formatWhatsAppMessage,
   BUILTIN_BROADCAST_TEMPLATES,
   BroadcastTemplate,
   renderTemplate,
@@ -23,7 +21,6 @@ import {
   Eye,
   CheckCircle,
   AlertCircle,
-  Building2,
   Lock,
   Unlock,
   Sparkles,
@@ -49,9 +46,6 @@ import {
   ShieldCheck,
   Share2,
   Globe,
-  SlidersHorizontal,
-  Bookmark,
-  CheckCheck,
 } from 'lucide-react';
 
 // Quick template presets for rapid job creation
@@ -143,11 +137,10 @@ export default function AdminPage() {
   const [pin, setPin] = useState('');
   const [pinError, setPinError] = useState(false);
 
-  // Active Tab: jobs | analytics | broadcast | ads | social | maintenance
-  const [activeTab, setActiveTab] = useState<'jobs' | 'analytics' | 'broadcast' | 'ads' | 'social' | 'maintenance'>('jobs');
+  // Active Tab
+  const [activeTab, setActiveTab] = useState<'jobs' | 'analytics' | 'broadcast' | 'ads' | 'social' | 'messages' | 'maintenance'>('jobs');
 
   const [jobs, setJobs] = useState<Job[]>([]);
-  const [loading, setLoading] = useState(true);
   const [dashboardStats, setDashboardStats] = useState<{
     total?: number;
     active?: number;
@@ -157,6 +150,17 @@ export default function AdminPage() {
     topViewed?: { id: string; slug: string; title: string; viewsCount: number }[];
   }>({});
   const [auditLogs, setAuditLogs] = useState<{ id: number; action: string; resource_id?: string | null; details?: Record<string, unknown>; created_at: string }[]>([]);
+  const [contactMessages, setContactMessages] = useState<Array<{
+    id: number;
+    name: string;
+    email: string;
+    subject: string;
+    message: string;
+    category: 'inquiry' | 'report';
+    job_url: string | null;
+    status: 'new' | 'in_progress' | 'resolved';
+    created_at: string;
+  }>>([]);
 
   // Search & Filters
   const [search, setSearch] = useState('');
@@ -188,7 +192,16 @@ export default function AdminPage() {
   const [tagInput, setTagInput] = useState('');
 
   // Broadcast & Templates State (Innovative Custom Format System)
-  const [customTemplates, setCustomTemplates] = useState<BroadcastTemplate[]>([]);
+  const [customTemplates, setCustomTemplates] = useState<BroadcastTemplate[]>(() => {
+    if (typeof window === 'undefined') return [];
+    try {
+      const saved = window.localStorage.getItem('custom_broadcast_templates');
+      const parsed = saved ? JSON.parse(saved) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  });
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('detailed');
   const [editingTemplateMode, setEditingTemplateMode] = useState<boolean>(false);
   const [templateForm, setTemplateForm] = useState({
@@ -210,7 +223,9 @@ export default function AdminPage() {
 
   // Channel Settings State
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
-  const [telegramChannelId, setTelegramChannelId] = useState('');
+  const [telegramChannelId, setTelegramChannelId] = useState(() =>
+    typeof window === 'undefined' ? '' : window.localStorage.getItem('tg_channel_id') || ''
+  );
   const [autoPublishTelegram, setAutoPublishTelegram] = useState(false);
 
   // Ad Settings State (Expanded with all AdSense compliant placements)
@@ -273,19 +288,6 @@ export default function AdminPage() {
   const activeTemplate = useMemo(() => {
     return allTemplates.find((t) => t.id === selectedTemplateId) || BUILTIN_BROADCAST_TEMPLATES[0];
   }, [allTemplates, selectedTemplateId]);
-
-  // Load custom templates from localStorage
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem('custom_broadcast_templates');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) setCustomTemplates(parsed);
-      }
-    } catch {
-      // Ignore
-    }
-  }, []);
 
   // Save new custom template
   const handleSaveCustomTemplate = (e: React.FormEvent) => {
@@ -462,7 +464,6 @@ export default function AdminPage() {
 
   const loadJobs = async () => {
     try {
-      setLoading(true);
       const res = await fetch('/api/jobs');
       const data = await res.json();
       if (data.success && Array.isArray(data.data)) {
@@ -474,7 +475,7 @@ export default function AdminPage() {
     } catch (e) {
       console.error(e);
     } finally {
-      setLoading(false);
+      // Loading is represented by the jobs empty state where needed.
     }
   };
 
@@ -488,6 +489,27 @@ export default function AdminPage() {
     }
   };
 
+  const loadContactMessages = async () => {
+    try {
+      const res = await fetch('/api/admin/messages');
+      const data = await res.json();
+      if (data.success) setContactMessages(data.data || []);
+    } catch {
+      // Ignore
+    }
+  };
+
+  const updateContactMessageStatus = async (id: number, status: 'new' | 'in_progress' | 'resolved') => {
+    const res = await fetch('/api/admin/messages', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, status }),
+    });
+    if (res.ok) {
+      setContactMessages((current) => current.map((item) => item.id === id ? { ...item, status } : item));
+    }
+  };
+
   const refreshDashboard = async () => {
     setRefreshing(true);
     try {
@@ -495,6 +517,7 @@ export default function AdminPage() {
       await Promise.all([
         loadJobs(),
         loadAuditLogs(),
+        loadContactMessages(),
         loadSocialSettings(),
         statsRequest.then((data) => {
           if (data.success) setDashboardStats(data.data);
@@ -569,8 +592,6 @@ export default function AdminPage() {
   };
 
   useEffect(() => {
-    const savedChannel = localStorage.getItem('tg_channel_id') || '';
-    setTelegramChannelId(savedChannel);
     fetch('/api/admin/session')
       .then((res) => res.json())
       .then((data) => {
@@ -581,7 +602,11 @@ export default function AdminPage() {
           loadSocialSettings();
           loadHomeStatsSettings();
           loadLogoLibrary();
+          loadContactMessages();
         }
+        loadJobs();
+        loadAuditLogs();
+        loadContactMessages();
       })
       .catch(() => setIsAuthenticated(false));
     fetch('/api/stats')
@@ -590,8 +615,7 @@ export default function AdminPage() {
         if (data.success) setDashboardStats(data.data);
       })
       .catch(() => undefined);
-    loadAuditLogs();
-    loadJobs();
+    // Data loaders run through explicit refresh/auth callbacks.
   }, []);
 
   const handleLogin = (e: React.FormEvent) => {
@@ -942,7 +966,7 @@ export default function AdminPage() {
     search.trim() || filterCity.trim() || filterSector !== 'all' || filterStatus !== 'all' || sortBy !== 'newest'
   );
 
-  const filtered = useMemo(() => {
+  const filtered = (() => {
     const q = search.toLowerCase().trim();
     return jobs
       .filter((j) => {
@@ -960,7 +984,7 @@ export default function AdminPage() {
           ? (b.viewsCount || 0) - (a.viewsCount || 0)
           : new Date(b.publishDate).getTime() - new Date(a.publishDate).getTime()
       );
-  }, [jobs, search, filterSector, filterStatus, filterCity, sortBy]);
+  })();
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const currentPage = Math.min(page, totalPages);
@@ -1188,6 +1212,22 @@ export default function AdminPage() {
             >
               <Share2 className="w-4 h-4 text-emerald-600" />
               <span>حسابات التواصل</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('messages')}
+              className={`flex items-center gap-2 py-2.5 px-4 font-bold border-b-2 transition whitespace-nowrap ${activeTab === 'messages'
+                ? 'border-saffron-500 text-ink-950 font-black'
+                : 'border-transparent text-ink-500 hover:text-ink-900 hover:bg-paper-2/50 rounded-t-lg'
+                }`}
+            >
+              <MessageCircle className="w-4 h-4 text-rose-600" />
+              <span>الرسائل والبلاغات</span>
+              {contactMessages.filter((item) => item.status === 'new').length > 0 && (
+                <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-rose-100 text-rose-700 font-black">
+                  {contactMessages.filter((item) => item.status === 'new').length}
+                </span>
+              )}
             </button>
 
             <button
@@ -2544,7 +2584,75 @@ export default function AdminPage() {
         )}
 
         {/* ========================================================================= */}
-        {/* TAB 6: MAINTENANCE & AUDIT LOGS */}
+        {/* TAB 6: CONTACT MESSAGES & REPORTS */}
+        {/* ========================================================================= */}
+        {activeTab === 'messages' && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-black text-ink-950">الرسائل والبلاغات</h2>
+                <p className="text-xs text-ink-500">متابعة الاستفسارات والبلاغات الواردة من صفحة اتصل بنا</p>
+              </div>
+              <button
+                onClick={loadContactMessages}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-line bg-white text-xs font-bold text-ink-700"
+              >
+                <RefreshCw className="w-4 h-4" />
+                تحديث
+              </button>
+            </div>
+
+            {contactMessages.length === 0 ? (
+              <div className="bg-white rounded-2xl border border-line p-10 text-center text-sm text-ink-500">
+                لا توجد رسائل واردة حتى الآن.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {contactMessages.map((item) => (
+                  <article key={item.id} className="bg-white rounded-2xl border border-line p-5 space-y-3">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2 py-1 rounded-md text-[10px] font-black ${item.category === 'report' ? 'bg-rose-100 text-rose-700' : 'bg-sky-100 text-sky-700'}`}>
+                            {item.category === 'report' ? 'بلاغ عن إعلان' : 'استفسار'}
+                          </span>
+                          <h3 className="font-black text-sm text-ink-950">{item.subject}</h3>
+                        </div>
+                        <p className="text-xs text-ink-500 mt-1">
+                          {item.name} · <span dir="ltr">{item.email}</span>
+                        </p>
+                      </div>
+                      <time className="text-[11px] text-ink-400" dir="ltr">
+                        {new Date(item.created_at).toLocaleString('ar-SA')}
+                      </time>
+                    </div>
+                    <p className="text-sm text-ink-700 leading-7 whitespace-pre-wrap">{item.message}</p>
+                    {item.job_url && (
+                      <a href={item.job_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs font-bold text-sky-700 hover:underline">
+                        فتح الإعلان المبلغ عنه
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    )}
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      {(['new', 'in_progress', 'resolved'] as const).map((status) => (
+                        <button
+                          key={status}
+                          onClick={() => updateContactMessageStatus(item.id, status)}
+                          className={`px-3 py-1.5 rounded-lg text-[11px] font-bold border ${item.status === status ? 'bg-ink-950 text-white border-ink-950' : 'bg-white text-ink-600 border-line'}`}
+                        >
+                          {status === 'new' ? 'جديدة' : status === 'in_progress' ? 'قيد المتابعة' : 'تمت المعالجة'}
+                        </button>
+                      ))}
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* TAB 7: MAINTENANCE & AUDIT LOGS */}
         {/* ========================================================================= */}
         {activeTab === 'maintenance' && (
           <div className="space-y-6">

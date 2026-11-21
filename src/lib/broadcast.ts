@@ -262,7 +262,7 @@ export async function sendTelegramBroadcast(
   channelId: string,
   siteUrl: string = 'https://www.job2sa.com',
   customText?: string
-): Promise<{ success: boolean; message: string; data?: any }> {
+): Promise<{ success: boolean; message: string; data?: unknown }> {
   if (!botToken || !channelId) {
     return {
       success: false,
@@ -293,7 +293,11 @@ export async function sendTelegramBroadcast(
       }),
     });
 
-    const data = await response.json();
+    const data = await response.json() as {
+      ok?: boolean;
+      result?: unknown;
+      description?: string;
+    };
 
     if (data.ok) {
       return {
@@ -308,10 +312,10 @@ export async function sendTelegramBroadcast(
         data,
       };
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     return {
       success: false,
-      message: error?.message || 'خطأ في الاتصال بسيرفر تيليجرام.',
+      message: error instanceof Error ? error.message : 'خطأ في الاتصال بسيرفر تيليجرام.',
     };
   }
 }

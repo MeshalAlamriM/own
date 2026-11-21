@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Bookmark } from 'lucide-react';
 
 interface BookmarkButtonProps {
@@ -10,16 +10,15 @@ interface BookmarkButtonProps {
 }
 
 export default function BookmarkButton({ jobId, className = '', showText = false }: BookmarkButtonProps) {
-  const [isSaved, setIsSaved] = useState(false);
-
-  useEffect(() => {
+  const [isSaved, setIsSaved] = useState(() => {
+    if (typeof window === 'undefined') return false;
     try {
       const saved = JSON.parse(localStorage.getItem('saved_jobs') || '[]');
-      setIsSaved(Array.isArray(saved) && saved.includes(jobId));
+      return Array.isArray(saved) && saved.includes(jobId);
     } catch {
-      // ignore
+      return false;
     }
-  }, [jobId]);
+  });
 
   const toggleBookmark = (e: React.MouseEvent) => {
     e.preventDefault();

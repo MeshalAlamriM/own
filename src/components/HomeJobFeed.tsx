@@ -8,6 +8,8 @@ import AdBanner from './AdBanner';
 import { Sparkles, Inbox, ArrowDownUp, ChevronDown } from 'lucide-react';
 import { matchesSector } from '@/lib/ui';
 
+const CURRENT_TIME = Date.now();
+
 interface HomeJobFeedProps {
   initialJobs: Job[];
   defaultSector?: JobSector | 'all';
@@ -108,7 +110,7 @@ export default function HomeJobFeed({
 
       if (expiringWeek) {
         const end = new Date(`${job.endDate}T23:59:59`).getTime();
-        const now = Date.now();
+        const now = CURRENT_TIME;
         const days = Math.ceil((end - now) / (24 * 60 * 60 * 1000));
         if (days < 0 || days > 7) return false;
       }
@@ -120,7 +122,7 @@ export default function HomeJobFeed({
     if (sort === 'popular') {
       sorted.sort((a, b) => (b.viewsCount || 0) - (a.viewsCount || 0));
     } else if (sort === 'closing') {
-      const now = Date.now();
+      const now = CURRENT_TIME;
       const key = (j: Job) => {
         const t = new Date(`${j.endDate}T23:59:59`).getTime();
         return t < now ? Number.MAX_SAFE_INTEGER : t; // المنتهية في النهاية

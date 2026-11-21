@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import PageHeader from '@/components/PageHeader';
-import { FileText, ShieldAlert, CheckCircle, Scale } from 'lucide-react';
+import { Scale } from 'lucide-react';
 
 export const metadata: Metadata = {
   title: 'الشروط والأحكام وإخلاء المسؤولية | وظيفتك اليوم',

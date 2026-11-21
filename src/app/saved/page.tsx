@@ -32,9 +32,12 @@ export default function SavedJobsPage() {
   }, []);
 
   useEffect(() => {
-    loadSaved();
+    const timer = window.setTimeout(loadSaved, 0);
     window.addEventListener('bookmarks_updated', loadSaved);
-    return () => window.removeEventListener('bookmarks_updated', loadSaved);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener('bookmarks_updated', loadSaved);
+    };
   }, [loadSaved]);
 
   const clearAll = () => {

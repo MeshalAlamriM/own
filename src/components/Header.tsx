@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
   Bookmark,
@@ -108,12 +109,6 @@ export default function Header() {
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
-
-  // Close overlays on route change
-  useEffect(() => {
-    setMobileOpen(false);
-    setSearchOpen(false);
-  }, [pathname]);
 
   // Lock body scroll while an overlay is open
   useEffect(() => {
@@ -236,10 +231,11 @@ export default function Header() {
             <div className="flex items-center justify-between gap-4 h-[68px]">
               {/* Logo */}
               <Link href="/" className="flex items-center gap-3 group shrink-0" aria-label="وظيفتك اليوم - الرئيسية">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
+                <Image
                   src="/logo-full.png"
                   alt="وظيفتك اليوم"
+                  width={142}
+                  height={56}
                   className="w-[126px] sm:w-[142px] h-auto object-contain group-hover:scale-[1.02] transition-transform duration-300"
                 />
               </Link>
@@ -344,8 +340,7 @@ export default function Header() {
           <div className="fixed inset-y-0 start-0 w-[84%] max-w-sm bg-paper shadow-2xl flex flex-col border-e border-line animate-slide-down">
             <div className="p-4 border-b border-line flex items-center justify-between">
               <Link href="/" onClick={() => setMobileOpen(false)}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/logo-full.png" alt="وظيفتك اليوم" className="w-32 h-auto" />
+                <Image src="/logo-full.png" alt="وظيفتك اليوم" width={128} height={50} className="w-32 h-auto" />
               </Link>
               <button
                 type="button"

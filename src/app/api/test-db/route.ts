@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { connection } from 'next/server';
-import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
 import { isAdminAuthenticated } from '@/lib/admin-auth';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   await connection();
   if (!(await isAdminAuthenticated())) {
     return NextResponse.json({ status: 'error', message: 'غير مصرح لك بهذه العملية' }, { status: 401 });
@@ -52,11 +52,11 @@ export async function GET(request: NextRequest) {
       jobsCountInCloud: data ? data.length : 0,
       sampleJobs: data,
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     return NextResponse.json({
       status: 'exception',
       message: 'حدث خطأ غير متوقع أثناء الاتصال بـ Supabase',
-      error: err?.message || err,
+      error: err instanceof Error ? err.message : String(err),
     });
   }
 }

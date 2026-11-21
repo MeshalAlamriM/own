@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { getJobBySlug, getAllJobs } from '@/data/store';
 import SchemaJobPosting from '@/components/SchemaJobPosting';
 import ShareButtons from '@/components/ShareButtons';
@@ -139,8 +140,13 @@ export default async function JobDetailPage({ params }: JobPageProps) {
           <div className="mt-8 flex items-start gap-5">
             <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-white flex items-center justify-center p-3 shrink-0 overflow-hidden shadow-lift">
               {job.companyLogo ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={job.companyLogo} alt={job.company} className="w-full h-full object-contain" />
+                <Image
+                  src={job.companyLogo}
+                  alt={job.company}
+                  fill
+                  sizes="96px"
+                  className="object-contain"
+                />
               ) : (
                 <Building2 className="w-9 h-9 text-ink-300" />
               )}

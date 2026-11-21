@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { getAllJobs, getJobStats } from '@/data/store';
 import HomeJobFeed from '@/components/HomeJobFeed';
 import TelegramBanner from '@/components/TelegramBanner';
@@ -163,8 +164,13 @@ export default async function HomePage() {
                       <Link href={`/jobs/${job.slug}`} className="flex items-center gap-3.5 px-5 py-4 hover:bg-paper/70 transition-colors group">
                         <span className="w-11 h-11 rounded-xl bg-paper border border-line flex items-center justify-center shrink-0 overflow-hidden p-1.5 text-[16px] font-bold text-ink-500">
                           {job.companyLogo ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img src={job.companyLogo} alt="" className="w-full h-full object-contain" loading="lazy" />
+                            <Image
+                              src={job.companyLogo}
+                              alt=""
+                              fill
+                              sizes="44px"
+                              className="object-contain"
+                            />
                           ) : (
                             initialsOf(job.company)
                           )}

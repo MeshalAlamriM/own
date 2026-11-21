@@ -1,6 +1,6 @@
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
-export type AuditAction = 'create_job' | 'update_job' | 'delete_job' | 'upload_logo' | 'publish_telegram' | 'seed_jobs' | 'update_settings';
+export type AuditAction = 'create_job' | 'update_job' | 'delete_job' | 'upload_logo' | 'publish_telegram' | 'seed_jobs' | 'update_settings' | 'update_contact_message';
 
 export async function recordAuditLog(action: AuditAction, resourceId?: string, details: Record<string, unknown> = {}) {
   if (!isSupabaseConfigured || !supabase) return;

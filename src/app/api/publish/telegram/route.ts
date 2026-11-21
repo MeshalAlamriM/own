@@ -60,12 +60,12 @@ export async function POST(request: NextRequest) {
       message: result.message,
       data: result.data,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('API Error broadcasting to Telegram:', error);
     return NextResponse.json(
       {
         success: false,
-        error: error?.message || 'حدث خطأ في الخادم أثناء محاولة النشر',
+        error: error instanceof Error ? error.message : 'حدث خطأ في الخادم أثناء محاولة النشر',
       },
       { status: 500 }
     );

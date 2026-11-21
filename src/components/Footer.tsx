@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Send, ArrowUpLeft, ShieldCheck } from 'lucide-react';
 import { DEFAULT_SOCIAL_SETTINGS, SocialSettings } from '@/lib/social-settings';
 
@@ -137,9 +138,11 @@ export default function Footer() {
         <div className="grid grid-cols-2 lg:grid-cols-12 gap-x-6 gap-y-10 pb-12 -mt-8">
           <div className="col-span-2 lg:col-span-4 space-y-5">
             <div className="flex items-center gap-3">
-              <img
+              <Image
                 src="/logo-mark.png"
                 alt="شعار وظيفتك اليوم"
+                width={44}
+                height={44}
                 className="w-11 h-11 object-contain"
               />
               <span className="text-[19px] font-bold text-white">

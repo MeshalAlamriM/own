@@ -81,5 +81,8 @@ npm run build
 - `ADMIN_PASSWORD`
 - `ADMIN_SESSION_SECRET`
 - `TELEGRAM_BOT_TOKEN` و`TELEGRAM_CHANNEL_ID` عند استخدام النشر الآلي.
+- `RESEND_API_KEY` — اختياري لإرسال رسائل اتصل بنا إلى الإيميل عبر Resend.
+- `CONTACT_FROM_EMAIL` — عنوان المرسل المعتمد في Resend، مثل `وظيفتك اليوم <no-reply@job2sa.com>`.
+- `CONTACT_TO_EMAIL` — صندوق الاستلام، الافتراضي `info@job2sa.com`.
 
 بعد تحديث `supabase-schema.sql`، نفّذ الملف في Supabase SQL Editor لتفعيل القراءة العامة فقط، وإغلاق الكتابة العامة، وإضافة الفهارس ودالة عداد المشاهدات الذرية.

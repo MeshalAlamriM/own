@@ -3,6 +3,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { AdPlacement, AdSettings, DEFAULT_AD_SETTINGS } from '@/lib/ad-settings';
 
+declare global {
+  interface Window {
+    adsbygoogle?: Array<Record<string, unknown>>;
+  }
+}
+
 interface AdBannerProps {
   placement: AdPlacement;
   className?: string;
@@ -105,7 +111,7 @@ export default function AdBanner({ placement, className = '', label, slotId }: A
   useEffect(() => {
     try {
       if (publisherId && settings && typeof window !== 'undefined') {
-        ((window as any).adsbygoogle = (window as any).adsbygoogle || []).push({});
+        (window.adsbygoogle = window.adsbygoogle || []).push({});
       }
     } catch {
       // Ignore if AdSense script is blocked or not yet active.
