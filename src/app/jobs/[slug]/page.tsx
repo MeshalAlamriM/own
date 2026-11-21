@@ -1,7 +1,6 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import Image from 'next/image';
 import { getJobBySlug, getAllJobs } from '@/data/store';
 import SchemaJobPosting from '@/components/SchemaJobPosting';
 import ShareButtons from '@/components/ShareButtons';
@@ -11,8 +10,8 @@ import JobCard from '@/components/JobCard';
 import TelegramBanner from '@/components/TelegramBanner';
 import AdBanner from '@/components/AdBanner';
 import ViewCounter from '@/components/ViewCounter';
+import CompanyLogo from '@/components/CompanyLogo';
 import {
-  Building2,
   MapPin,
   GraduationCap,
   Users,
@@ -138,19 +137,12 @@ export default async function JobDetailPage({ params }: JobPageProps) {
           </nav>
 
           <div className="mt-8 flex items-start gap-5">
-            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-white flex items-center justify-center p-3 shrink-0 overflow-hidden shadow-lift">
-              {job.companyLogo ? (
-                <Image
-                  src={job.companyLogo}
-                  alt={job.company}
-                  fill
-                  sizes="96px"
-                  className="object-contain"
-                />
-              ) : (
-                <Building2 className="w-9 h-9 text-ink-300" />
-              )}
-            </div>
+            <CompanyLogo
+              src={job.companyLogo}
+              name={job.company}
+              size={96}
+              className="rounded-2xl bg-white p-3 shrink-0 shadow-lift"
+            />
 
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2 mb-3">

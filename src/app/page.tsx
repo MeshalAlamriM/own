@@ -1,13 +1,13 @@
 import Link from 'next/link';
-import Image from 'next/image';
 import { getAllJobs, getJobStats } from '@/data/store';
 import HomeJobFeed from '@/components/HomeJobFeed';
 import TelegramBanner from '@/components/TelegramBanner';
 import AdBanner from '@/components/AdBanner';
 import HeroSearch from '@/components/HeroSearch';
-import { daysLeft, matchesSector, sectorStyle, initialsOf } from '@/lib/ui';
+import { daysLeft, matchesSector, sectorStyle } from '@/lib/ui';
 import type { JobSector } from '@/types/job';
 import { getHomeStatsSettings } from '@/lib/home-stats-settings';
+import CompanyLogo from '@/components/CompanyLogo';
 
 export const dynamic = 'force-dynamic';
 import {
@@ -162,19 +162,12 @@ export default async function HomePage() {
                   return (
                     <li key={job.id}>
                       <Link href={`/jobs/${job.slug}`} className="flex items-center gap-3.5 px-5 py-4 hover:bg-paper/70 transition-colors group">
-                        <span className="w-11 h-11 rounded-xl bg-paper border border-line flex items-center justify-center shrink-0 overflow-hidden p-1.5 text-[16px] font-bold text-ink-500">
-                          {job.companyLogo ? (
-                            <Image
-                              src={job.companyLogo}
-                              alt=""
-                              fill
-                              sizes="44px"
-                              className="object-contain"
-                            />
-                          ) : (
-                            initialsOf(job.company)
-                          )}
-                        </span>
+                        <CompanyLogo
+                          src={job.companyLogo}
+                          name={job.company}
+                          size={44}
+                          className="rounded-xl bg-paper border border-line shrink-0 p-1.5"
+                        />
                         <span className="flex-1 min-w-0">
                           <span className="block text-[14px] font-bold text-ink-950 truncate group-hover:text-saffron-700 transition-colors">
                             {job.title}

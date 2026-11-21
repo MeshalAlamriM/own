@@ -2,8 +2,8 @@
 
 import Link from 'next/link';
 import { Job } from '@/types/job';
-import Image from 'next/image';
-import { MapPin, GraduationCap, Users, ArrowUpLeft, Building2, Flame, Sparkles } from 'lucide-react';
+import CompanyLogo from './CompanyLogo';
+import { MapPin, GraduationCap, Users, ArrowUpLeft, Flame, Sparkles } from 'lucide-react';
 import BookmarkButton from './BookmarkButton';
 import ShareButtons from './ShareButtons';
 import JobCountdown from './JobCountdown';
@@ -43,19 +43,12 @@ export default function JobCard({ job, featuredHighlight = false }: JobCardProps
         {/* الصف العلوي */}
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-12 h-12 rounded-xl bg-paper border border-line flex items-center justify-center shrink-0 overflow-hidden p-1.5">
-              {job.companyLogo ? (
-                <Image
-                  src={job.companyLogo}
-                  alt={job.company}
-                  fill
-                  sizes="48px"
-                  className="object-contain"
-                />
-              ) : (
-                <Building2 className="w-5 h-5 text-ink-300" />
-              )}
-            </div>
+            <CompanyLogo
+              src={job.companyLogo}
+              name={job.company}
+              size={48}
+              className="rounded-xl bg-paper border border-line shrink-0 p-1.5"
+            />
             <div className="min-w-0">
               <p className="text-[13px] font-semibold text-ink-700 truncate">{job.company}</p>
               <p className="text-[12px] text-ink-400 mt-0.5" suppressHydrationWarning>
