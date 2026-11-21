@@ -381,6 +381,39 @@ export default function AdminPage() {
     }
   };
 
+  const renameLogoLibraryItem = async (item: { name: string; url: string; path?: string }) => {
+    if (!item.path) return;
+    const name = window.prompt('اسم الشعار الجديد', item.name)?.trim();
+    if (!name) return;
+    const res = await fetch('/api/admin/logo-library', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: item.path, name }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.success) {
+      alert(data.error || 'تعذر إعادة تسمية الشعار.');
+      return;
+    }
+    await loadLogoLibrary();
+  };
+
+  const deleteLogoLibraryItem = async (item: { name: string; url: string; path?: string }) => {
+    if (!item.path) return;
+    if (!window.confirm(`حذف الشعار "${item.name}" نهائيًا من قاعدة البيانات؟`)) return;
+    const res = await fetch('/api/admin/logo-library', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: item.path }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.success) {
+      alert(data.error || 'تعذر حذف الشعار.');
+      return;
+    }
+    await loadLogoLibrary();
+  };
+
   const loadHomeStatsSettings = async () => {
     try {
       const res = await fetch('/api/admin/settings/home-stats');
@@ -2925,27 +2958,50 @@ export default function AdminPage() {
                               item.name.toLowerCase().includes(logoLibrarySearch.toLowerCase().trim())
                             )
                             .map((item) => (
-                              <button
+                              <div
                                 key={item.url}
-                                type="button"
-                                onClick={() => {
-                                  removeLogoFile();
-                                  setFormData((prev) => ({ ...prev, companyLogo: item.url }));
-                                }}
                                 className="group min-w-0 p-2 rounded-xl border border-line hover:border-saffron-400 hover:bg-saffron-50/40 transition"
                                 title={item.name}
                               >
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img
-                                  src={item.url}
-                                  alt={item.name}
-                                  className="w-10 h-10 mx-auto object-contain"
-                                  loading="lazy"
-                                />
-                                <span className="block mt-1 truncate text-[9px] font-bold text-ink-700">
-                                  {item.name}
-                                </span>
-                              </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    removeLogoFile();
+                                    setLogoAssetName(item.name);
+                                    setFormData((prev) => ({ ...prev, companyLogo: item.url }));
+                                  }}
+                                  className="block w-full"
+                                  title={`استيراد ${item.name} إلى الإعلان`}
+                                >
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                  <img
+                                    src={item.url}
+                                    alt={item.name}
+                                    className="w-10 h-10 mx-auto object-contain"
+                                    loading="lazy"
+                                  />
+                                  <span className="block mt-1 truncate text-[9px] font-bold text-ink-700">
+                                    {item.name}
+                                  </span>
+                                  <span className="block mt-1 text-[8px] text-saffron-700 font-bold">استيراد إلى الإعلان</span>
+                                </button>
+                                <div className="flex items-center justify-center gap-1 mt-1">
+                                  <button
+                                    type="button"
+                                    onClick={() => renameLogoLibraryItem(item)}
+                                    className="px-1.5 py-0.5 rounded bg-paper-2 text-[8px] font-bold text-ink-600"
+                                  >
+                                    تسمية
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => deleteLogoLibraryItem(item)}
+                                    className="px-1.5 py-0.5 rounded bg-rose-50 text-[8px] font-bold text-rose-700"
+                                  >
+                                    حذف
+                                  </button>
+                                </div>
+                              </div>
                             ))}
                         </div>
                       )}
