@@ -15,6 +15,7 @@
 - `NEXT_PUBLIC_IMAGES_URL=https://images.job2sa.com` — نطاق ملفات الشعارات المرفوعة.
 - `RESEND_API_KEY` — اختياري لإرسال رسائل اتصل بنا عبر Resend.
 - `CONTACT_FROM_EMAIL` و`CONTACT_TO_EMAIL` — عنوان المرسل وصندوق الاستلام.
+- `NEXT_PUBLIC_GOOGLE_TAG_ID=GTM-WDGX4FJR` — Google Tag Manager أو Google Analytics.
 
 بعد الحفظ، نفّذ Redeploy من Vercel.
 

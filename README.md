@@ -84,5 +84,6 @@ npm run build
 - `RESEND_API_KEY` — اختياري لإرسال رسائل اتصل بنا إلى الإيميل عبر Resend.
 - `CONTACT_FROM_EMAIL` — عنوان المرسل المعتمد في Resend، مثل `وظيفتك اليوم <no-reply@job2sa.com>`.
 - `CONTACT_TO_EMAIL` — صندوق الاستلام، الافتراضي `info@job2sa.com`.
+- `NEXT_PUBLIC_GOOGLE_TAG_ID=GTM-WDGX4FJR` — معرف Google Tag/Google Analytics.
 
 بعد تحديث `supabase-schema.sql`، نفّذ الملف في Supabase SQL Editor لتفعيل القراءة العامة فقط، وإغلاق الكتابة العامة، وإضافة الفهارس ودالة عداد المشاهدات الذرية.
