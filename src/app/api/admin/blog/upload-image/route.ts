@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { isAdminAuthenticated } from '@/lib/admin-auth';
 import { recordAuditLog } from '@/lib/audit';
+import { getPublicImageUrl } from '@/lib/image-url';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 
 export const runtime = 'nodejs';
@@ -94,7 +95,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: false, error: 'فشل رفع الصورة إلى التخزين؛ تحقق من إعدادات Supabase Storage' }, { status: 500 });
   }
 
-  const { data: publicUrl } = supabase.storage.from(BUCKET).getPublicUrl(path);
+  const publicUrl = getPublicImageUrl(`blog/${path}`);
   await recordAuditLog('upload_blog_image', undefined, { path, fileType: detectedType, size: file.size });
-  return NextResponse.json({ success: true, url: publicUrl.publicUrl });
+  return NextResponse.json({ success: true, url: publicUrl });
 }

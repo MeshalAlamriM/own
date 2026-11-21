@@ -12,10 +12,16 @@ const nextConfig: NextConfig = {
   async rewrites() {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/+$/, '');
     if (!supabaseUrl) return [];
-    return [{
-      source: '/images/:path*',
-      destination: `${supabaseUrl}/storage/v1/object/public/company-logos/:path*`,
-    }];
+    return [
+      {
+        source: '/images/blog/:path*',
+        destination: `${supabaseUrl}/storage/v1/object/public/blog-images/:path*`,
+      },
+      {
+        source: '/images/:path*',
+        destination: `${supabaseUrl}/storage/v1/object/public/company-logos/:path*`,
+      },
+    ];
   },
   async headers() {
     return [{
