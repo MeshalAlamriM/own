@@ -236,10 +236,11 @@ export default function AdminBlogPage() {
       <main className="mx-auto max-w-7xl space-y-6 px-4 py-7 sm:px-6 lg:px-8">
         {error && <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm font-semibold text-rose-800">{error}</p>}
 
-        <section className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <StatCard label="كل المقالات" value={posts.length} icon={<FileText className="h-5 w-5" />} />
           <StatCard label="منشورة" value={publishedCount} icon={<Send className="h-5 w-5" />} />
           <StatCard label="مسودات" value={draftCount} icon={<Pencil className="h-5 w-5" />} />
+          <StatCard label="إجمالي مشاهدات المقالات" value={posts.reduce((total, post) => total + post.viewsCount, 0)} icon={<Eye className="h-5 w-5" />} />
         </section>
 
         <section className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(350px,0.9fr)]">
@@ -279,7 +280,13 @@ export default function AdminBlogPage() {
                       {post.featured && <Star className="h-3.5 w-3.5 fill-saffron-400 text-saffron-500" aria-label="مقال مميز" />}
                     </div>
                     <h3 className="mt-2 truncate font-black text-ink-900">{post.title}</h3>
-                    <p className="mt-1 truncate text-xs text-ink-400" dir="ltr">/blog/{post.slug}</p>
+                    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+                      <p className="truncate text-xs text-ink-400" dir="ltr">/blog/{post.slug}</p>
+                      <span className="inline-flex items-center gap-1 text-xs font-semibold text-ink-500">
+                        <Eye className="h-3.5 w-3.5" />
+                        {post.viewsCount.toLocaleString('ar-SA')} مشاهدة
+                      </span>
+                    </div>
                   </div>
                   <div className="flex shrink-0 items-center gap-1">
                     {post.status === 'published' && <Link href={`/blog/${post.slug}`} target="_blank" aria-label="معاينة المقال" className="rounded-lg p-2 text-ink-400 hover:bg-paper hover:text-ink-900"><Eye className="h-4 w-4" /></Link>}

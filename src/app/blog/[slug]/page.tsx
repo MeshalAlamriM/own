@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ArrowRight, CalendarDays } from 'lucide-react';
 import BlogArticleContent from '@/components/BlogArticleContent';
+import BlogViewCounter from '@/components/BlogViewCounter';
 import { getPublishedBlogPost } from '@/lib/blog';
 import { isSafeBlogImageUrl } from '@/lib/blog-shared';
 
@@ -60,6 +61,9 @@ export default async function BlogArticlePage({ params }: BlogArticlePageProps) 
           <CalendarDays className="h-4 w-4" />
           {formatDate(post.publishedAt)}
         </span>
+        <div className="mt-3">
+          <BlogViewCounter slug={post.slug} initialViews={post.viewsCount} />
+        </div>
       </header>
 
       {isSafeBlogImageUrl(post.coverImage) && (

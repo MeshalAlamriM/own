@@ -154,6 +154,22 @@ CREATE INDEX IF NOT EXISTS blog_posts_published_at_idx
 CREATE INDEX IF NOT EXISTS blog_posts_featured_idx
   ON public.blog_posts (featured, published_at DESC)
   WHERE status = 'published';
+
+CREATE OR REPLACE FUNCTION public.increment_blog_views(post_slug TEXT)
+RETURNS INTEGER
+LANGUAGE SQL
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  UPDATE public.blog_posts
+  SET views_count = COALESCE(views_count, 0) + 1
+  WHERE slug = post_slug AND status = 'published'
+  RETURNING views_count;
+$$;
+
+REVOKE ALL ON FUNCTION public.increment_blog_views(TEXT) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.increment_blog_views(TEXT) TO service_role;
+
 CREATE INDEX IF NOT EXISTS contact_messages_created_at_idx ON public.contact_messages (created_at DESC);
 CREATE INDEX IF NOT EXISTS contact_messages_status_idx ON public.contact_messages (status);
 CREATE INDEX IF NOT EXISTS contact_messages_category_idx ON public.contact_messages (category);
